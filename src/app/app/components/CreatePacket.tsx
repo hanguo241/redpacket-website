@@ -378,6 +378,17 @@ export default function CreatePacket() {
                 {totalAmount} {token === "native" ? "ETH" : "Token"}
               </span>
             </div>
+            {/* 平台费用 (2‰) */}
+            <div className="flex justify-between text-sm">
+              <span className="text-text-secondary">平台费 (2‰)</span>
+              <span className="text-white font-mono">
+                {totalAmount ? fromWei(toWei(totalAmount) === "0" ? "0" : (BigInt(toWei(totalAmount)) * BigInt(2) / BigInt(1000)).toString()) : "0"} {token === "native" ? "ETH" : "Token"}
+              </span>
+            </div>
+            <div className="text-xs text-text-secondary pl-4">
+              平台收取红包金额的 2‰
+            </div>
+
             {gasInfo && (
               <>
                 <div className="flex justify-between text-sm">
