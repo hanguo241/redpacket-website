@@ -60,6 +60,11 @@ export interface PreparePacketResponse {
   transaction: TransactionData;
   share_url: string;
   expire_at: number;
+  estimated_gas_fee_wei: string;
+  estimated_gas_fee_eth: string;
+  gas_price_gwei: string;
+  gas_estimate_multiplier: number;
+  suggested_gas_reserve_wei: string;
 }
 
 /** 第一步: 获取待签名交易数据, 不写 DB */

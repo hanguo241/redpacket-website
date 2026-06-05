@@ -92,6 +92,15 @@ export default function CreatePacket() {
   const [weiAmount, setWeiAmount] = useState("");
   const [sentPackets, setSentPackets] = useState<SentPacket[]>([]);
 
+  // gas 估算信息
+  const [gasInfo, setGasInfo] = useState<{
+    estimatedGasFeeWei: string;
+    estimatedGasFeeEth: string;
+    gasPriceGwei: string;
+    multiplier: number;
+    gasReserveWei: string;
+  } | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isConnected || !address) return;
@@ -128,12 +137,22 @@ export default function CreatePacket() {
           ? (BigInt(res.transaction.value) as any)
           : undefined,
       });
+      // 保存 gas 估算信息
+      setGasInfo({
+        estimatedGasFeeWei: res.estimated_gas_fee_wei,
+        estimatedGasFeeEth: res.estimated_gas_fee_eth,
+        gasPriceGwei: res.gas_price_gwei,
+        multiplier: res.gas_estimate_multiplier,
+        gasReserveWei: res.suggested_gas_reserve_wei,
+      });
       // 保存红包信息供下一步 create 提交
       setPendingPacketInfo({
         chain, token, total_amount: amountWei, head_count: headCount,
         packet_type: packetType, sub_type: subType, claim_mode: claimMode,
         password: packetType === "password" ? password : undefined,
         end_time: endTime, start_time: 0,
+        gas_reserve_wei: res.suggested_gas_reserve_wei,
+        gas_estimate_multiplier: res.gas_estimate_multiplier,
       });
 
       setStep("sign");
@@ -350,10 +369,44 @@ export default function CreatePacket() {
           <p className="text-text-secondary text-sm">
             请在钱包中确认签名以创建红包
           </p>
-          <div className="bg-surface-dark rounded-lg p-3 text-left text-xs font-mono text-text-secondary break-all">
-            <p>到: {pendingTx?.to}</p>
-            <p>数据: {pendingTx?.data?.slice(0, 50)}...</p>
+
+          {/* 金额明细 */}
+          <div className="bg-surface-dark rounded-lg p-4 text-left space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-secondary">红包金额</span>
+              <span className="text-white font-mono">
+                {totalAmount} {token === "native" ? "ETH" : "Token"}
+              </span>
+            </div>
+            {gasInfo && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-secondary">预估 Gas 费</span>
+                  <span className="text-white font-mono">
+                    {fromWei(gasInfo.estimatedGasFeeWei)} ETH
+                  </span>
+                </div>
+                <div className="text-xs text-text-secondary pl-4 space-y-0.5">
+                  <p>Gas Price: {gasInfo.gasPriceGwei} Gwei</p>
+                  <p>估算倍数: {gasInfo.multiplier}x</p>
+                </div>
+                <div className="border-t border-border/50 pt-2 flex justify-between text-sm font-semibold">
+                  <span className="text-text-secondary">总计扣款</span>
+                  <span className="text-white font-mono">
+                    {fromWei(gasInfo.estimatedGasFeeWei)} ETH + {totalAmount} {token === "native" ? "ETH" : "Token"}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* 交易详情 */}
+          <div className="bg-surface-dark rounded-lg p-3 text-left text-xs font-mono text-text-secondary break-all">
+            <p className="mb-1"><span className="text-text-secondary">合约:</span> {pendingTx?.to?.slice(0, 10)}...{pendingTx?.to?.slice(-6)}</p>
+            <p className="mb-1"><span className="text-text-secondary">数据:</span> {pendingTx?.data?.slice(0, 66)}...</p>
+            <p><span className="text-text-secondary">Value:</span> {pendingTx?.value?.toString() || "0"} wei</p>
+          </div>
+
           {error && <p className="text-redpacket text-sm">{error}</p>}
           <div className="flex gap-3">
             <button onClick={() => setStep("form")}
