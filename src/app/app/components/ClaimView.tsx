@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount } from "wagmi";
-import { getPacketStatus, prepareClaim, confirmClaim } from "@/lib/api";
+import { useAccount, useSignMessage } from "wagmi";
+import { getPacketStatus, prepareClaim, confirmClaim, proxyClaim } from "@/lib/api";
 import { fromWei } from "./CreatePacket";
 
 interface ClaimRecord {
@@ -54,6 +54,7 @@ const smallCardStyle: React.CSSProperties = {
 
 export default function ClaimView() {
   const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
 
   const [packetId, setPacketId] = useState("");
   const [password, setPassword] = useState("");
@@ -84,6 +85,43 @@ export default function ClaimView() {
       setResult(status);
     } catch (err: any) {
       setError(err.message || "查询失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleProxyClaim() {
+    if (!isConnected || !address || !result) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // 用户签署授权消息
+      const authMsg = `RedPacket: authorize claim ${result.packet_id}`;
+      const userSignature = await signMessageAsync({ message: authMsg });
+
+      // 调用后端代领接口
+      const res = await proxyClaim({
+        packet_id: result.packet_id,
+        user_address: address,
+        user_signature: userSignature,
+        proof: password ? { password } : undefined,
+      });
+
+      const record: ClaimRecord = {
+        packetId: result.packet_id,
+        amount: res.amount,
+        status: "confirmed",
+        txHash: res.tx_hash,
+        timestamp: Date.now(),
+      };
+      setClaimHistory((prev) => [record, ...prev]);
+      setResult(null);
+      setPacketId("");
+      setPassword("");
+    } catch (err: any) {
+      setError(err.message || "代领失败");
     } finally {
       setLoading(false);
     }
@@ -198,11 +236,24 @@ export default function ClaimView() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="输入口令（如有）"
                 style={inputStyle} />
-              <button onClick={handleClaim} disabled={loading}
-                style={btnPrimary}
-                className="transition-opacity hover:opacity-80 disabled:opacity-50">
-                {loading ? "领取中..." : "领取红包 🧧"}
-              </button>
+
+              {/* 自领按钮 */}
+              {(result.claim_mode === "self" || result.claim_mode === "both") && (
+                <button onClick={handleClaim} disabled={loading}
+                  style={btnPrimary}
+                  className="transition-opacity hover:opacity-80 disabled:opacity-50">
+                  {loading ? "领取中..." : "自领（自己付 gas）🧧"}
+                </button>
+              )}
+
+              {/* 代领按钮 */}
+              {(result.claim_mode === "proxy" || result.claim_mode === "both") && (
+                <button onClick={handleProxyClaim} disabled={loading}
+                  style={{ ...btnPrimary, background: "#0068d6" }}
+                  className="transition-opacity hover:opacity-80 disabled:opacity-50">
+                  {loading ? "代领中..." : "代领（平台付 gas）⚡"}
+                </button>
+              )}
             </div>
           )}
         </div>

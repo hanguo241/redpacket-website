@@ -181,19 +181,17 @@ export function requestClaimSign(
 }
 
 export interface ProxyClaimResponse {
-  claim_id: string;
-  tx_hash: string;
   status: string;
+  tx_hash: string;
+  packet_id: string;
+  amount: string;
 }
 
 export function proxyClaim(data: {
   packet_id: string;
-  recipient: string;
-  amount: string;
-  signature: string;
-  nonce: number;
-  deadline: number;
-  user_authorization: string;
+  user_address: string;
+  user_signature: string;
+  proof?: { password: string };
 }) {
   return request<ProxyClaimResponse>("/api/v1/claim/proxy", {
     method: "POST",
