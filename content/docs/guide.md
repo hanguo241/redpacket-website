@@ -30,7 +30,7 @@ curl -X POST https://api.redpacket.com/api/v1/project/register \
 ## 第二步：创建红包
 
 ```json
-POST /api/v1/packet/prepare
+POST /api/v1/merchant/packet/prepare
 Content-Type: application/json
 
 {
@@ -58,4 +58,4 @@ Content-Type: application/json
 
 - **金额单位** — 所有金额以 wei 为单位（1 ETH = 10^18 wei）
 - **签名有效期** — claim 签名默认 30 分钟过期
-- **手续费** — 每笔 claim 按比例扣除手续费，默认 1%
+- **手续费** — 创建红包时一次性收取红包总额的千分之二（0.2%），领取时不再额外扣费

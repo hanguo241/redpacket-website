@@ -65,6 +65,10 @@ export interface PreparePacketResponse {
   gas_price_gwei: string;
   gas_estimate_multiplier: number;
   suggested_gas_reserve_wei: string;
+  fee_bps: number;
+  platform_fee_wei: string;
+  claim_pool_wei: string;
+  refund_available_at: number;
 }
 
 /** 第一步: 获取待签名交易数据, 不写 DB */
@@ -80,9 +84,13 @@ export function preparePacket(data: PreparePacketRequest) {
 export interface CreatePacketResponse {
   packet_id: string;
   share_url: string;
-  expire_at: number;
-  transaction: TransactionData;
+  status: string;
   tx_hash?: string;
+  gross_amount: string;
+  platform_fee_wei: string;
+  claim_pool_wei: string;
+  fee_bps: number;
+  refund_available_at: number;
 }
 
 /** 第二步: 前端签名后, 将 signed_rlp + 全部红包信息提交, 后端广播上链并写入 DB */
@@ -98,12 +106,15 @@ export function createPacket(data: Record<string, any>) {
 export interface PacketStatusResponse {
   packet_id: string;
   status: string;
+  gross_amount: string;
   total_amount: string;
+  platform_fee_wei: string;
   claimed_amount: string;
   remaining_amount: string;
   claimed_count: number;
   head_count: number;
   claim_mode: string;
+  refund_available_at: number;
 }
 
 export function getPacketStatus(packetId: string) {
@@ -213,5 +224,6 @@ export function getAdminStats() {
     total_claimed_amount: string;
     total_projects: number;
     active_packets: number;
+    total_platform_fees_wei: string;
   }>("/api/v1/admin/stats");
 }

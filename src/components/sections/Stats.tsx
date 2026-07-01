@@ -3,13 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 
 interface StatItemProps {
-  icon: string;
   value: number;
   suffix: string;
   label: string;
 }
 
-function StatItem({ icon, value, suffix, label }: StatItemProps) {
+function StatItem({ value, suffix, label }: StatItemProps) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
@@ -49,26 +48,30 @@ function StatItem({ icon, value, suffix, label }: StatItemProps) {
 
   return (
     <div ref={ref} className="text-center">
-      <div className="text-3xl mb-2">{icon}</div>
-      <div className="text-3xl md:text-4xl font-bold text-white number-glow">
+      <div style={{ fontSize: "48px", fontWeight: 600, letterSpacing: "-2.4px", lineHeight: 1.0, color: "#171717" }}>
         {formatNumber(count)}
-        <span className="text-redpacket">{suffix}</span>
+        <span style={{ color: "#171717" }}>{suffix}</span>
       </div>
-      <div className="text-sm text-text-secondary mt-1">{label}</div>
+      <div style={{ fontSize: "14px", color: "#4d4d4d", marginTop: "8px" }}>{label}</div>
     </div>
   );
 }
 
 export default function Stats() {
   return (
-    <section className="py-20">
+    <section className="py-20 bg-white">
       <div className="mx-auto max-w-5xl px-6">
-        <div className="glass rounded-2xl p-8 md:p-12">
+        <div style={{
+          padding: "32px 40px",
+          borderRadius: "12px",
+          background: "#fff",
+          boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
+        }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatItem icon="🧧" value={12847} suffix="+" label="已发送红包" />
-            <StatItem icon="💰" value={3284700} suffix="+" label="已发放金额 (USD)" />
-            <StatItem icon="⛓️" value={6} suffix="" label="支持的链" />
-            <StatItem icon="🤝" value={47} suffix="+" label="合作项目方" />
+            <StatItem value={12847} suffix="+" label="已发送红包" />
+            <StatItem value={3284700} suffix="+" label="已发放金额 (USD)" />
+            <StatItem value={6} suffix="" label="支持的链" />
+            <StatItem value={47} suffix="+" label="合作项目方" />
           </div>
         </div>
       </div>

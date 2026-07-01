@@ -11,7 +11,7 @@
 | 字段 | 说明 |
 |------|------|
 | 项目名称 | 你的 DApp 或项目名称 |
-| 钱包地址 | 用于接收手续费和签名验证 |
+| 钱包地址 | 用于商户身份签名验证 |
 | 官网地址 | 可选，用于展示 |
 
 注册成功后获取 **AppKey** 和 **AppSecret**：
@@ -64,7 +64,7 @@ const body = { chain: "ETH", token: "native", ... };
 const signature = signRequest(appSecret, body, timestamp);
 
 // 发起请求
-fetch('https://api.redpacket.com/api/v1/packet/prepare', {
+fetch('https://api.redpacket.com/api/v1/merchant/packet/prepare', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ const txHash = await ethereum.request({
 });
 
 // 将 txHash 提交到你的后端
-await fetch('/api/v1/packet/create', {
+await fetch('/api/v1/merchant/packet/create', {
   method: 'POST',
   headers: { /* HMAC 签名 */ },
   body: JSON.stringify({

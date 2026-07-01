@@ -6,6 +6,46 @@ import { registerProject } from "@/lib/api";
 
 type Step = "connect" | "form" | "sign" | "done";
 
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: "12px",
+  padding: "32px",
+  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  color: "#171717",
+  background: "#fff",
+  border: "none",
+  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
+  outline: "none",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+};
+
+const btnPrimary: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 20px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: 500,
+  lineHeight: 1.43,
+  background: "#171717",
+  color: "#fff",
+  border: "none",
+  cursor: "pointer",
+};
+
+const btnSecondary: React.CSSProperties = {
+  ...btnPrimary,
+  background: "#fff",
+  color: "#171717",
+  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
+};
+
 export default function RegisterPage() {
   const { address, isConnected } = useAccount();
   const { connect, isPending: connectPending } = useConnect();
@@ -63,22 +103,36 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
+    <div className="min-h-screen pt-24 pb-16 bg-white">
       <div className="mx-auto max-w-xl px-6">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">🔐 商户注册</h1>
-          <p className="text-text-secondary">连接钱包，创建你的 RedPacket 商户账号</p>
+          <h1 style={{
+            fontSize: "40px",
+            fontWeight: 600,
+            letterSpacing: "-2.4px",
+            lineHeight: 1.2,
+            color: "#171717",
+            marginBottom: "0.5rem",
+          }}>
+            🔐 商户注册
+          </h1>
+          <p style={{ fontSize: "16px", color: "#4d4d4d" }}>
+            连接钱包，创建你的 RedPacket 商户账号
+          </p>
         </div>
 
         {/* 步骤: 连接钱包 */}
         {step === "connect" && (
-          <div className="rounded-2xl p-8 text-center" style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p className="text-text-secondary mb-6">首先，连接你的钱包</p>
+          <div style={cardStyle} className="text-center">
+            <p style={{ fontSize: "14px", color: "#808080", marginBottom: "24px" }}>
+              首先，连接你的钱包
+            </p>
             {metaMaskConnector && (
               <button
                 onClick={() => connect({ connector: metaMaskConnector })}
                 disabled={connectPending}
-                className="w-full rounded-full bg-redpacket px-6 py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors disabled:opacity-50 cursor-pointer"
+                style={btnPrimary}
+                className="transition-opacity hover:opacity-80 disabled:opacity-50"
               >
                 {connectPending ? "连接中..." : "连接 MetaMask"}
               </button>
@@ -86,8 +140,8 @@ export default function RegisterPage() {
             {isConnected && (
               <button
                 onClick={() => setStep("form")}
-                className="mt-4 w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-colors cursor-pointer"
-                style={{ background: "rgba(255,255,255,0.06)" }}
+                style={{ ...btnPrimary, marginTop: "16px", background: "#fff", color: "#171717", boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px" }}
+                className="transition-shadow hover:shadow-[rgba(0,0,0,0.12)_0px_0px_0px_1px]"
               >
                 已连接: {address?.slice(0, 6)}...{address?.slice(-4)} → 下一步
               </button>
@@ -97,56 +151,39 @@ export default function RegisterPage() {
 
         {/* 步骤: 填写信息 */}
         {step === "form" && (
-          <form onSubmit={handleSubmit} className="rounded-2xl p-8 space-y-4" style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p className="text-sm text-text-secondary mb-2">
-              钱包: <span className="text-white font-mono">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-              <button onClick={() => disconnect()} className="ml-2 text-redpacket text-xs">更换</button>
+          <form onSubmit={handleSubmit} style={cardStyle} className="space-y-4">
+            <p style={{ fontSize: "14px", color: "#808080", marginBottom: "8px" }}>
+              钱包: <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </span>
+              <button onClick={() => disconnect()} style={{ marginLeft: "8px", color: "#ff5b4f", fontSize: "12px", background: "none", border: "none", cursor: "pointer" }}>
+                更换
+              </button>
             </p>
 
             <div>
-              <label className="block text-sm text-text-secondary mb-1">项目名称 *</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="输入你的 DApp 或项目名称"
-                required
-                className="w-full rounded-lg px-3 py-2 text-sm"
-                style={{ background: "#0D0D0D", border: "1px solid rgba(255,255,255,0.1)", color: "white" }}
-              />
+              <label style={{ display: "block", fontSize: "13px", color: "#808080", marginBottom: "4px" }}>项目名称 *</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="输入你的 DApp 或项目名称" required style={inputStyle} />
             </div>
 
             <div>
-              <label className="block text-sm text-text-secondary mb-1">项目网站</label>
-              <input
-                type="url"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://mydapp.com（选填）"
-                className="w-full rounded-lg px-3 py-2 text-sm"
-                style={{ background: "#0D0D0D", border: "1px solid rgba(255,255,255,0.1)", color: "white" }}
-              />
+              <label style={{ display: "block", fontSize: "13px", color: "#808080", marginBottom: "4px" }}>项目网站</label>
+              <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://mydapp.com（选填）" style={inputStyle} />
             </div>
 
             <div>
-              <label className="block text-sm text-text-secondary mb-1">联系方式</label>
-              <input
-                type="text"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="Telegram / 邮箱（选填）"
-                className="w-full rounded-lg px-3 py-2 text-sm"
-                style={{ background: "#0D0D0D", border: "1px solid rgba(255,255,255,0.1)", color: "white" }}
-              />
+              <label style={{ display: "block", fontSize: "13px", color: "#808080", marginBottom: "4px" }}>联系方式</label>
+              <input type="text" value={contact} onChange={(e) => setContact(e.target.value)}
+                placeholder="Telegram / 邮箱（选填）" style={inputStyle} />
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>}
 
-            <button
-              type="submit"
-              disabled={busy || !name.trim()}
-              className="w-full rounded-full bg-redpacket px-6 py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors disabled:opacity-50 cursor-pointer"
-            >
+            <button type="submit" disabled={busy || !name.trim()}
+              style={btnPrimary}
+              className="transition-opacity hover:opacity-80 disabled:opacity-50">
               {busy ? "请求钱包签名..." : "提交注册"}
             </button>
           </form>
@@ -154,36 +191,43 @@ export default function RegisterPage() {
 
         {/* 步骤: 完成 */}
         {step === "done" && result && (
-          <div className="rounded-2xl p-8 text-center space-y-4" style={{ background: "#1a1a2e", border: "1px solid rgba(34,197,94,0.3)" }}>
-            <div className="text-4xl">🎉</div>
-            <h2 className="text-xl font-bold text-white">注册成功！</h2>
-            <p className="text-sm text-text-secondary">
-              AppSecret <strong className="text-redpacket">只显示一次</strong>，请立即保存
+          <div style={{
+            ...cardStyle,
+            textAlign: "center",
+            boxShadow: "rgba(34,197,94,0.15) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
+          }} className="space-y-4">
+            <div style={{ fontSize: "32px" }}>🎉</div>
+            <h2 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
+              注册成功！
+            </h2>
+            <p style={{ fontSize: "14px", color: "#808080" }}>
+              AppSecret <strong style={{ color: "#171717" }}>只显示一次</strong>，请立即保存
             </p>
 
-            <div className="text-left space-y-3 bg-[#0D0D0D] rounded-lg p-4">
+            <div className="text-left space-y-3" style={{ background: "#fafafa", borderRadius: "8px", padding: "16px" }}>
               <div>
-                <div className="text-xs text-text-secondary mb-1">AppKey</div>
-                <div className="font-mono text-sm text-white break-all bg-[#1a1a2e] rounded px-3 py-2">{result.app_key}</div>
+                <div style={{ fontSize: "12px", color: "#808080", marginBottom: "4px" }}>AppKey</div>
+                <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "14px", color: "#171717", wordBreak: "break-all", background: "#fff", borderRadius: "6px", padding: "8px 12px", boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px" }}>
+                  {result.app_key}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-text-secondary mb-1">AppSecret</div>
-                <div className="font-mono text-sm text-white break-all bg-[#1a1a2e] rounded px-3 py-2">{result.app_secret}</div>
+                <div style={{ fontSize: "12px", color: "#808080", marginBottom: "4px" }}>AppSecret</div>
+                <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "14px", color: "#171717", wordBreak: "break-all", background: "#fff", borderRadius: "6px", padding: "8px 12px", boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px" }}>
+                  {result.app_secret}
+                </div>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={copySecret}
-                className="flex-1 rounded-full bg-redpacket px-6 py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors cursor-pointer"
-              >
+              <button onClick={copySecret}
+                style={{ flex: 1, ...btnPrimary }}
+                className="transition-opacity hover:opacity-80">
                 {copied ? "✅ 已复制" : "📋 复制凭据"}
               </button>
-              <a
-                href="/docs/quickstart"
-                className="flex-1 rounded-full px-6 py-3 text-sm font-semibold text-center text-white transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)" }}
-              >
+              <a href="/docs/quickstart"
+                style={{ flex: 1, ...btnSecondary }}
+                className="transition-shadow hover:shadow-[rgba(0,0,0,0.12)_0px_0px_0px_1px]">
                 📖 查看接入文档
               </a>
             </div>

@@ -14,12 +14,14 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white"
+      style={{ boxShadow: "rgba(0, 0, 0, 0.08) 0px 0px 0px 1px" }}>
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-          <span className="text-redpacket text-2xl">🧧</span>
-          <span className="text-white">RedPacket</span>
+        <Link href="/" className="flex items-center gap-2 font-semibold"
+          style={{ fontSize: "16px", color: "#171717", letterSpacing: "-0.32px" }}>
+          <span style={{ fontSize: "20px" }}>🧧</span>
+          RedPacket
         </Link>
 
         {/* Desktop nav */}
@@ -28,7 +30,8 @@ export default function Header() {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className="text-sm text-text-secondary hover:text-white transition-colors"
+                className="transition-colors hover:opacity-60"
+                style={{ fontSize: "14px", fontWeight: 500, color: "#171717" }}
               >
                 {link.label}
               </Link>
@@ -39,14 +42,16 @@ export default function Header() {
         {/* CTA */}
         <Link
           href="/app"
-          className="hidden md:inline-flex items-center rounded-full bg-redpacket px-5 py-2 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors"
+          className="hidden md:inline-flex items-center px-4 py-2 text-white font-medium transition-opacity hover:opacity-80"
+          style={{ background: "#171717", borderRadius: "6px", fontSize: "14px" }}
         >
           立即接入
         </Link>
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden text-white"
+          className="md:hidden"
+          style={{ color: "#171717" }}
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -62,13 +67,14 @@ export default function Header() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border px-6 py-4 bg-surface-dark">
+        <div className="md:hidden px-6 py-4 bg-white"
+          style={{ boxShadow: "rgba(0, 0, 0, 0.08) 0px 0px 0px 1px" }}>
           <ul className="flex flex-col gap-4">
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="text-text-secondary hover:text-white transition-colors"
+                  style={{ fontSize: "14px", fontWeight: 500, color: "#4d4d4d" }}
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
@@ -78,7 +84,8 @@ export default function Header() {
             <li>
               <Link
                 href="/app"
-                className="inline-flex items-center rounded-full bg-redpacket px-5 py-2 text-sm font-semibold text-white"
+                className="inline-flex items-center px-4 py-2 text-white font-medium"
+                style={{ background: "#171717", borderRadius: "6px", fontSize: "14px" }}
                 onClick={() => setMobileOpen(false)}
               >
                 立即接入

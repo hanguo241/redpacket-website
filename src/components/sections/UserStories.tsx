@@ -27,14 +27,21 @@ const stories = [
 
 export default function UserStories() {
   return (
-    <section className="py-24">
+    <section className="py-24 bg-white">
       <div className="mx-auto max-w-6xl px-6">
         {/* Section header */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 style={{
+            fontSize: "40px",
+            fontWeight: 600,
+            letterSpacing: "-2.4px",
+            lineHeight: 1.2,
+            color: "#171717",
+            marginBottom: "1rem",
+          }}>
             谁在用 RedPacket
           </h2>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+          <p style={{ fontSize: "20px", fontWeight: 400, lineHeight: 1.8, color: "#4d4d4d", maxWidth: "36rem", margin: "0 auto" }}>
             从项目方到普通用户，RedPacket 让每个人都能轻松收发链上红包
           </p>
         </div>
@@ -44,13 +51,26 @@ export default function UserStories() {
           {stories.map((s) => (
             <div
               key={s.role}
-              className="glass rounded-2xl p-6 hover:bg-surface-card-hover transition-colors"
+              className="bg-white transition-all duration-200"
+              style={{
+                borderRadius: "8px",
+                padding: "24px",
+                boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px",
+              }}
             >
               <div className="flex items-start gap-4">
-                <div className="text-2xl shrink-0 mt-1">{s.icon}</div>
+                <div style={{ fontSize: "24px", flexShrink: 0, marginTop: "2px" }}>{s.icon}</div>
                 <div>
-                  <div className="text-sm font-semibold text-redpacket mb-2">{s.role}</div>
-                  <p className="text-text-secondary leading-relaxed italic">
+                  <div style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "#171717",
+                    letterSpacing: "-0.32px",
+                    marginBottom: "8px",
+                  }}>
+                    {s.role}
+                  </div>
+                  <p style={{ fontSize: "16px", fontWeight: 400, lineHeight: 1.5, color: "#4d4d4d", fontStyle: "italic" }}>
                     &ldquo;{s.quote}&rdquo;
                   </p>
                 </div>

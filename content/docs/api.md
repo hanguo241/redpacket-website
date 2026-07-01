@@ -66,12 +66,15 @@ Content-Type: application/json
 
 ## 红包管理
 
+官方 website 演示应用使用公开路径 `/api/v1/packet/*`。项目方服务端接入请使用
+`/api/v1/merchant/packet/*`，并携带 HMAC 鉴权头。
+
 ### 获取交易数据
 
 获取待用户签名的合约调用数据。
 
 ```http
-POST /api/v1/packet/prepare
+POST /api/v1/merchant/packet/prepare
 X-App-Key: sk_live_xxx
 X-Signature: abc123...
 X-Timestamp: 1700000000000
@@ -94,7 +97,7 @@ X-Timestamp: 1700000000000
 |------|------|------|------|------|
 | chain | string | 是 | - | ETH / BSC / LOCAL |
 | token | string | 是 | - | "native" 或 ERC20 合约地址 |
-| total_amount | string | 是 | - | 金额，单位为 wei |
+| total_amount | string | 是 | - | 发红包总额，单位为 wei。平台会计提千分之二（0.2%），剩余进入领取池 |
 | head_count | int | 是 | - | 红包份数 |
 | packet_type | string | 是 | - | normal / password |
 | sub_type | string | 是 | - | average / random |
@@ -114,7 +117,11 @@ X-Timestamp: 1700000000000
     "value": "1000000000000000000"
   },
   "share_url": "https://redpacket.com/claim/uuid",
-  "expire_at": 1735689600
+  "expire_at": 1735689600,
+  "fee_bps": 20,
+  "platform_fee_wei": "2000000000000000",
+  "claim_pool_wei": "998000000000000000",
+  "refund_available_at": 1735689600
 }
 ```
 
@@ -125,7 +132,7 @@ X-Timestamp: 1700000000000
 用户签名上链后，将交易信息提交到后端记录。后端会自动从链上事件中提取 `onchain_packet_id`。
 
 ```http
-POST /api/v1/packet/create
+POST /api/v1/merchant/packet/create
 X-App-Key: sk_live_xxx
 X-Signature: abc123...
 X-Timestamp: 1700000000000
@@ -151,7 +158,7 @@ X-Timestamp: 1700000000000
 ### 查询红包状态
 
 ```http
-GET /api/v1/packet/{packet_id}/status
+GET /api/v1/merchant/packet/{packet_id}/status
 ```
 
 **响应**
@@ -160,9 +167,11 @@ GET /api/v1/packet/{packet_id}/status
 {
   "packet_id": "uuid",
   "status": "active",
-  "total_amount": "1000000000000000000",
+  "gross_amount": "1000000000000000000",
+  "total_amount": "998000000000000000",
+  "platform_fee_wei": "2000000000000000",
   "claimed_amount": "200000000000000000",
-  "remaining_amount": "800000000000000000",
+  "remaining_amount": "798000000000000000",
   "claimed_count": 2,
   "head_count": 10,
   "claim_mode": "both"

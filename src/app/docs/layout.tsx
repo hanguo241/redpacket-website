@@ -19,13 +19,13 @@ const SIDEBAR = [
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen pt-20 pb-16">
+    <div className="min-h-screen pt-20 pb-16 bg-white">
       <div className="mx-auto max-w-6xl px-6 flex gap-10">
         <aside className="hidden md:block w-56 shrink-0">
           <nav className="sticky top-24 space-y-6">
             {SIDEBAR.map((section) => (
               <div key={section.title}>
-                <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "#94A3B8" }}>
+                <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "#808080" }}>
                   {section.title}
                 </h3>
                 <ul className="space-y-2">
@@ -33,8 +33,8 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="block text-sm transition-colors hover:text-white"
-                        style={{ color: "#94A3B8" }}
+                        className="block text-sm transition-colors hover:text-[#171717]"
+                        style={{ color: "#666666" }}
                       >
                         {item.label}
                       </Link>

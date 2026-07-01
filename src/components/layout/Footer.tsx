@@ -36,16 +36,18 @@ const footerSections = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-surface-dark">
+    <footer className="bg-white"
+      style={{ boxShadow: "rgba(0, 0, 0, 0.08) 0px 0px 0px 1px" }}>
       <div className="mx-auto max-w-7xl px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 text-xl font-bold mb-4">
-              <span className="text-redpacket text-2xl">🧧</span>
-              <span className="text-white">RedPacket</span>
+            <Link href="/" className="flex items-center gap-2 mb-4"
+              style={{ fontSize: "16px", fontWeight: 600, color: "#171717", letterSpacing: "-0.32px" }}>
+              <span style={{ fontSize: "20px" }}>🧧</span>
+              RedPacket
             </Link>
-            <p className="text-sm text-text-secondary leading-relaxed">
+            <p style={{ fontSize: "14px", color: "#4d4d4d", lineHeight: 1.7 }}>
               一键发红包，Web3 用户增长引擎。
               <br />
               即插即用的红包基础设施。
@@ -55,13 +57,16 @@ export default function Footer() {
           {/* Link columns */}
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h3 className="text-sm font-semibold text-white mb-4">{section.title}</h3>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#171717", marginBottom: "16px", letterSpacing: "-0.32px" }}>
+                {section.title}
+              </h3>
               <ul className="flex flex-col gap-3">
                 {section.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-text-secondary hover:text-white transition-colors"
+                      className="transition-colors hover:text-[#171717]"
+                      style={{ fontSize: "14px", color: "#666666" }}
                     >
                       {link.label}
                     </Link>
@@ -72,7 +77,8 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border text-center text-sm text-text-secondary">
+        <div className="mt-12 pt-8 text-center"
+          style={{ fontSize: "14px", color: "#808080", boxShadow: "rgba(0, 0, 0, 0.08) 0px -1px 0px 0px" }}>
           &copy; {new Date().getFullYear()} RedPacket. All rights reserved.
         </div>
       </div>

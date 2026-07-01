@@ -12,13 +12,11 @@ type SubType = "average" | "random";
 /** 将用户输入的单位 (如 ETH) 转为 wei (18 位小数) */
 function toWei(amount: string): string {
   try {
-    // 去掉空格
     const trimmed = amount.trim();
     if (!trimmed || trimmed === "0") return "0";
     const parts = trimmed.split(".");
     const intPart = parts[0];
     const decPart = (parts[1] || "").padEnd(18, "0").slice(0, 18);
-    // 去掉前导零
     const wei = intPart + decPart;
     return wei.replace(/^0+/, "") || "0";
   } catch {
@@ -48,17 +46,42 @@ interface SentPacket {
   txHash?: string;
 }
 
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: "12px",
+  padding: "24px",
+  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  color: "#171717",
+  background: "#fff",
+  border: "none",
+  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
+  outline: "none",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "13px",
+  color: "#808080",
+  marginBottom: "4px",
+};
+
 export default function CreatePacket() {
   const { address, isConnected } = useAccount();
   const { chains, loading: chainsLoading, getChainByName } = useChainConfig();
   const { switchToChain } = useChainSwitch();
   const { sendTransactionAsync } = useSendTransaction()
 
-  // 链切换状态
   const [switchingChain, setSwitchingChain] = useState(false);
   const [chainSwitchErr, setChainSwitchErr] = useState("");
 
-  // 表单状态
   const [chain, setChain] = useState("");
   const [token, setToken] = useState("native");
   const [totalAmount, setTotalAmount] = useState("");
@@ -66,15 +89,13 @@ export default function CreatePacket() {
   const [packetType, setPacketType] = useState<PacketType>("normal");
   const [subType, setSubType] = useState<SubType>("average");
   const [password, setPassword] = useState("");
-  const [claimMode, setClaimMode] = useState("both");
+  const [claimMode, setClaimMode] = useState("self");
   const [endTime, setEndTime] = useState(
     () => Math.floor(Date.now() / 1000) + 86400
   );
 
-  // 默认链已初始化的标记
   const chainInitRef = useRef(false);
 
-  // 链就绪后设置默认链
   useEffect(() => {
     if (!chain && chains.length > 0 && !chainInitRef.current) {
       chainInitRef.current = true;
@@ -82,7 +103,6 @@ export default function CreatePacket() {
     }
   }, [chain, chains]);
 
-  // 过程状态
   const [step, setStep] = useState<"form" | "sign" | "done">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -92,13 +112,16 @@ export default function CreatePacket() {
   const [weiAmount, setWeiAmount] = useState("");
   const [sentPackets, setSentPackets] = useState<SentPacket[]>([]);
 
-  // gas 估算信息
   const [gasInfo, setGasInfo] = useState<{
     estimatedGasFeeWei: string;
     estimatedGasFeeEth: string;
     gasPriceGwei: string;
     multiplier: number;
     gasReserveWei: string;
+    feeBps: number;
+    platformFeeWei: string;
+    claimPoolWei: string;
+    refundAvailableAt: number;
   } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -109,14 +132,12 @@ export default function CreatePacket() {
     setError("");
 
     try {
-      // 金额单位转换: 用户输入 ETH → 转为 wei 传给后端
       const amountWei = toWei(totalAmount);
       if (amountWei === "0" || amountWei === "") {
         throw new Error("请输入有效的金额");
       }
       setWeiAmount(amountWei);
 
-      // 1. 获取待签名交易数据 (不写 DB)
       const res = await preparePacket({
         chain,
         token,
@@ -137,15 +158,17 @@ export default function CreatePacket() {
           ? (BigInt(res.transaction.value) as any)
           : undefined,
       });
-      // 保存 gas 估算信息
       setGasInfo({
         estimatedGasFeeWei: res.estimated_gas_fee_wei,
         estimatedGasFeeEth: res.estimated_gas_fee_eth,
         gasPriceGwei: res.gas_price_gwei,
         multiplier: res.gas_estimate_multiplier,
         gasReserveWei: res.suggested_gas_reserve_wei,
+        feeBps: res.fee_bps,
+        platformFeeWei: res.platform_fee_wei,
+        claimPoolWei: res.claim_pool_wei,
+        refundAvailableAt: res.refund_available_at,
       });
-      // 保存红包信息供下一步 create 提交
       setPendingPacketInfo({
         chain, token, total_amount: amountWei, head_count: headCount,
         packet_type: packetType, sub_type: subType, claim_mode: claimMode,
@@ -153,6 +176,9 @@ export default function CreatePacket() {
         end_time: endTime, start_time: 0,
         gas_reserve_wei: res.suggested_gas_reserve_wei,
         gas_estimate_multiplier: res.gas_estimate_multiplier,
+        fee_bps: res.fee_bps,
+        platform_fee_wei: res.platform_fee_wei,
+        claim_pool_wei: res.claim_pool_wei,
       });
 
       setStep("sign");
@@ -167,18 +193,14 @@ export default function CreatePacket() {
     if (!pendingTx) return;
     setLoading(true);
     setError("");
-    console.log("待签名交易数据:", pendingTx);
     try {
-      // 2. 前端广播: eth_sendTransaction → 获取 txHash
-      const txHash_: string =await sendTransactionAsync({
+      const txHash_: string = await sendTransactionAsync({
         to: pendingTx.to,
         data: pendingTx.data,
         value: pendingTx.value,
       })
-      console.log("交易已发送，txHash:", txHash_);
       if (!txHash_) throw new Error("交易失败");
 
-      // 3. 将红包信息 + txHash 提交后端记录
       const info = pendingPacketInfo || {};
       const result = await createPacket({
         packet_id: pendingPacketId,
@@ -195,15 +217,17 @@ export default function CreatePacket() {
         password: info.password,
         start_time: info.start_time || 0,
         end_time: info.end_time || endTime,
+        gas_reserve_wei: info.gas_reserve_wei || "0",
+        gas_estimate_multiplier: info.gas_estimate_multiplier || 1.2,
+        fee_bps: info.fee_bps || 20,
       });
       const txHash = result.tx_hash || txHash_;
 
-      // 4. 记录已发送的红包
       const newPacket: SentPacket = {
         packetId: pendingPacketId,
-        shareUrl: `https://redpacket.com/claim/${pendingPacketId}`,
+        shareUrl: result.share_url,
         status: "active",
-        totalAmount: weiAmount,
+        totalAmount: result.claim_pool_wei || info.claim_pool_wei || weiAmount,
         claimedCount: 0,
         headCount,
         txHash,
@@ -223,20 +247,16 @@ export default function CreatePacket() {
     navigator.clipboard.writeText(url);
   }
 
-  // 选择链时触发钱包切换/添加（必须在任何 return 之前定义）
   const handleChainChange = useCallback(
     async (newChain: string) => {
-      console.log("切换到链:", newChain);
       setChain(newChain);
       setChainSwitchErr("");
 
       const cfg = getChainByName(newChain);
-      console.log("链配置:", cfg);
       if (!cfg || cfg.chainId <= 0) return;
 
       setSwitchingChain(true);
       try {
-        console.log("尝试切换到链ID:", cfg.chainId);
         await switchToChain(cfg.chainId, cfg.name, cfg.rpcUrl);
       } catch (err: any) {
         setChainSwitchErr(err?.message || "切换链失败");
@@ -249,36 +269,62 @@ export default function CreatePacket() {
 
   if (!isConnected || !address) {
     return (
-      <div className="glass rounded-2xl p-6 text-center">
-        <p className="text-text-secondary">请先连接钱包</p>
+      <div style={cardStyle} className="text-center">
+        <p style={{ fontSize: "14px", color: "#808080" }}>请先连接钱包</p>
       </div>
     );
   }
 
   if (chainsLoading) {
     return (
-      <div className="glass rounded-2xl p-6 text-center">
-        <p className="text-text-secondary">加载链配置中...</p>
+      <div style={cardStyle} className="text-center">
+        <p style={{ fontSize: "14px", color: "#808080" }}>加载链配置中...</p>
       </div>
     );
   }
 
-  
+  const btnPrimary: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 20px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: 500,
+    lineHeight: 1.43,
+    background: "#171717",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+  };
+
+  const btnSecondary: React.CSSProperties = {
+    ...btnPrimary,
+    background: "#fff",
+    color: "#171717",
+    boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
+  };
+
+  const smallCardStyle: React.CSSProperties = {
+    background: "#fafafa",
+    borderRadius: "8px",
+    padding: "16px",
+  };
 
   return (
     <div className="space-y-6">
       {/* ======== 步骤1: 表单 ======== */}
       {step === "form" && (
-        <form onSubmit={handleSubmit} className="glass rounded-2xl p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-white">创建红包</h3>
+        <form onSubmit={handleSubmit} style={cardStyle} className="space-y-4">
+          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
+            创建红包
+          </h3>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-secondary mb-1">链</label>
-              <div className="relative">
+              <label style={labelStyle}>链</label>
+              <div style={{ position: "relative" }}>
                 <select value={chain} onChange={(e) => handleChainChange(e.target.value)}
                   disabled={switchingChain}
-                  className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket disabled:opacity-50 appearance-none">
+                  style={{ ...inputStyle, appearance: "none" as any }}>
                   {chains.filter(c => c.chainId > 0).map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name} {c.contractAddress ? `(${c.contractAddress.slice(0, 6)}...)` : ""}
@@ -286,76 +332,72 @@ export default function CreatePacket() {
                   ))}
                 </select>
                 {switchingChain && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gold">
+                  <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", color: "#808080" }}>
                     切换中...
                   </span>
                 )}
               </div>
               {chainSwitchErr && (
-                <p className="text-redpacket text-xs mt-1">{chainSwitchErr}</p>
+                <p style={{ fontSize: "12px", color: "#ff5b4f", marginTop: "4px" }}>{chainSwitchErr}</p>
               )}
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">Token</label>
+              <label style={labelStyle}>Token</label>
               <input type="text" value={token} onChange={(e) => setToken(e.target.value)}
-                placeholder="native 或合约地址"
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket" />
+                placeholder="native 或合约地址" style={inputStyle} />
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">总金额</label>
+              <label style={labelStyle}>总金额</label>
               <input type="text" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)}
-                placeholder="100" required
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket" />
+                placeholder="100" required style={inputStyle} />
               {totalAmount && (
-                <p className="text-xs text-text-secondary mt-1">
+                <p style={{ fontSize: "12px", color: "#808080", marginTop: "4px" }}>
                   ≈ {toWei(totalAmount).slice(0, 12)}... wei
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">领取人数</label>
+              <label style={labelStyle}>领取人数</label>
               <input type="number" value={headCount} onChange={(e) => setHeadCount(Number(e.target.value))}
-                min={1} max={1000}
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket" />
+                min={1} max={1000} style={inputStyle} />
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">红包类型</label>
+              <label style={labelStyle}>红包类型</label>
               <select value={packetType} onChange={(e) => setPacketType(e.target.value as PacketType)}
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket">
+                style={{ ...inputStyle, appearance: "none" as any }}>
                 <option value="normal">普通红包</option>
                 <option value="password">口令红包</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">分配方式</label>
+              <label style={labelStyle}>分配方式</label>
               <select value={subType} onChange={(e) => setSubType(e.target.value as SubType)}
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket">
+                style={{ ...inputStyle, appearance: "none" as any }}>
                 <option value="average">均分</option>
                 <option value="random">随机</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-1">Gas 模式</label>
+              <label style={labelStyle}>领取模式</label>
               <select value={claimMode} onChange={(e) => setClaimMode(e.target.value)}
-                className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket">
-                <option value="both">自领+代领</option>
-                <option value="self">仅自领</option>
-                <option value="proxy">仅代领</option>
+                style={{ ...inputStyle, appearance: "none" as any }}>
+                <option value="self">自领（用户付 gas）</option>
+                <option value="proxy">代领（平台付 gas）</option>
               </select>
             </div>
             {packetType === "password" && (
               <div>
-                <label className="block text-sm text-text-secondary mb-1">口令</label>
+                <label style={labelStyle}>口令</label>
                 <input type="text" value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="设置领取口令"
-                  className="w-full rounded-lg bg-surface-dark border border-border px-3 py-2 text-white text-sm focus:outline-none focus:border-redpacket" />
+                  placeholder="设置领取口令" style={inputStyle} />
               </div>
             )}
           </div>
 
-          {error && <p className="text-redpacket text-sm">{error}</p>}
+          {error && <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>}
           <button type="submit" disabled={loading}
-            className="w-full rounded-full bg-redpacket py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors disabled:opacity-50">
+            style={btnPrimary}
+            className="transition-opacity hover:opacity-80 disabled:opacity-50">
             {loading ? "提交中..." : "创建红包"}
           </button>
         </form>
@@ -363,47 +405,55 @@ export default function CreatePacket() {
 
       {/* ======== 步骤2: 钱包签名 ======== */}
       {step === "sign" && (
-        <div className="glass rounded-2xl p-6 text-center space-y-4">
-          <div className="text-4xl">✍️</div>
-          <h3 className="text-lg font-semibold text-white">确认交易</h3>
-          <p className="text-text-secondary text-sm">
+        <div style={cardStyle} className="text-center space-y-4">
+          <div style={{ fontSize: "32px" }}>✍️</div>
+          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
+            确认交易
+          </h3>
+          <p style={{ fontSize: "14px", color: "#808080" }}>
             请在钱包中确认签名以创建红包
           </p>
 
           {/* 金额明细 */}
-          <div className="bg-surface-dark rounded-lg p-4 text-left space-y-3">
+          <div style={smallCardStyle} className="text-left space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-text-secondary">红包金额</span>
-              <span className="text-white font-mono">
+              <span style={{ color: "#808080" }}>红包金额</span>
+              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
                 {totalAmount} {token === "native" ? "ETH" : "Token"}
               </span>
             </div>
-            {/* 平台费用 (2‰) */}
             <div className="flex justify-between text-sm">
-              <span className="text-text-secondary">平台费 (2‰)</span>
-              <span className="text-white font-mono">
-                {totalAmount ? fromWei(toWei(totalAmount) === "0" ? "0" : (BigInt(toWei(totalAmount)) * BigInt(2) / BigInt(1000)).toString()) : "0"} {token === "native" ? "ETH" : "Token"}
+              <span style={{ color: "#808080" }}>平台费 (千分之二)</span>
+              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
+                {gasInfo ? fromWei(gasInfo.platformFeeWei) : "0"} {token === "native" ? "ETH" : "Token"}
               </span>
             </div>
-            <div className="text-xs text-text-secondary pl-4">
-              平台收取红包金额的 2‰
+            <div style={{ fontSize: "12px", color: "#808080", paddingLeft: "16px" }}>
+              平台收取红包金额的千分之二，剩余金额进入领取池
+            </div>
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "#808080" }}>领取池</span>
+              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
+                {gasInfo ? fromWei(gasInfo.claimPoolWei) : "0"} {token === "native" ? "ETH" : "Token"}
+              </span>
             </div>
 
             {gasInfo && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">预估 Gas 费</span>
-                  <span className="text-white font-mono">
+                  <span style={{ color: "#808080" }}>预估 Gas 费</span>
+                  <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
                     {fromWei(gasInfo.estimatedGasFeeWei)} ETH
                   </span>
                 </div>
-                <div className="text-xs text-text-secondary pl-4 space-y-0.5">
+                <div style={{ fontSize: "12px", color: "#808080", paddingLeft: "16px" }} className="space-y-0.5">
                   <p>Gas Price: {gasInfo.gasPriceGwei} Gwei</p>
                   <p>估算倍数: {gasInfo.multiplier}x</p>
                 </div>
-                <div className="border-t border-border/50 pt-2 flex justify-between text-sm font-semibold">
-                  <span className="text-text-secondary">总计扣款</span>
-                  <span className="text-white font-mono">
+                <div style={{ borderTop: "1px solid #ebebeb", paddingTop: "8px" }}
+                  className="flex justify-between text-sm font-semibold">
+                  <span style={{ color: "#808080" }}>总计扣款</span>
+                  <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
                     {fromWei(gasInfo.estimatedGasFeeWei)} ETH + {totalAmount} {token === "native" ? "ETH" : "Token"}
                   </span>
                 </div>
@@ -412,20 +462,33 @@ export default function CreatePacket() {
           </div>
 
           {/* 交易详情 */}
-          <div className="bg-surface-dark rounded-lg p-3 text-left text-xs font-mono text-text-secondary break-all">
-            <p className="mb-1"><span className="text-text-secondary">合约:</span> {pendingTx?.to?.slice(0, 10)}...{pendingTx?.to?.slice(-6)}</p>
-            <p className="mb-1"><span className="text-text-secondary">数据:</span> {pendingTx?.data?.slice(0, 66)}...</p>
-            <p><span className="text-text-secondary">Value:</span> {pendingTx?.value?.toString() || "0"} wei</p>
+          <div style={{
+            background: "#fafafa",
+            borderRadius: "8px",
+            padding: "12px",
+            textAlign: "left",
+            fontSize: "12px",
+            fontFamily: "var(--font-geist-mono), monospace",
+            color: "#808080",
+            wordBreak: "break-all",
+          }}>
+            <p style={{ marginBottom: "4px" }}>
+              <span style={{ color: "#808080" }}>合约:</span> {pendingTx?.to?.slice(0, 10)}...{pendingTx?.to?.slice(-6)}
+            </p>
+            <p style={{ marginBottom: "4px" }}>
+              <span style={{ color: "#808080" }}>数据:</span> {pendingTx?.data?.slice(0, 66)}...
+            </p>
+            <p><span style={{ color: "#808080" }}>Value:</span> {pendingTx?.value?.toString() || "0"} wei</p>
           </div>
 
-          {error && <p className="text-redpacket text-sm">{error}</p>}
+          {error && <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>}
           <div className="flex gap-3">
-            <button onClick={() => setStep("form")}
-              className="flex-1 rounded-full glass py-3 text-sm font-semibold text-white hover:bg-surface-card-hover transition-colors">
+            <button onClick={() => setStep("form")} style={{ flex: 1, ...btnSecondary }}
+              className="transition-shadow hover:shadow-[rgba(0,0,0,0.12)_0px_0px_0px_1px]">
               取消
             </button>
-            <button onClick={handleSign} disabled={loading}
-              className="flex-1 rounded-full bg-redpacket py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors disabled:opacity-50">
+            <button onClick={handleSign} disabled={loading} style={{ flex: 1, ...btnPrimary }}
+              className="transition-opacity hover:opacity-80 disabled:opacity-50">
               {loading ? "签名中..." : "确认签名"}
             </button>
           </div>
@@ -434,14 +497,21 @@ export default function CreatePacket() {
 
       {/* ======== 步骤3: 完成 ======== */}
       {step === "done" && sentPackets.length > 0 && (
-        <div className="glass rounded-2xl p-6 border border-green-500/30 text-center space-y-4">
-          <div className="text-4xl">🎉</div>
-          <h3 className="text-lg font-semibold text-white">红包已发送！</h3>
-          <p className="text-xs font-mono text-text-secondary break-all">
+        <div style={{
+          ...cardStyle,
+          textAlign: "center",
+          boxShadow: "rgba(34,197,94,0.15) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
+        }} className="space-y-4">
+          <div style={{ fontSize: "32px" }}>🎉</div>
+          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
+            红包已发送！
+          </h3>
+          <p style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "#808080", wordBreak: "break-all" }}>
             Tx: {sentPackets[0].txHash}
           </p>
           <button onClick={() => { setStep("form"); setPendingTx(null); }}
-            className="w-full rounded-full bg-redpacket py-3 text-sm font-semibold text-white hover:bg-redpacket-dark transition-colors">
+            style={btnPrimary}
+            className="transition-opacity hover:opacity-80">
             再发一个
           </button>
         </div>
@@ -449,21 +519,31 @@ export default function CreatePacket() {
 
       {/* 发送记录 */}
       {sentPackets.length > 0 && step !== "done" && (
-        <div className="glass rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">发送记录</h3>
+        <div style={cardStyle}>
+          <h3 style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.32px", color: "#171717", marginBottom: "16px" }}>
+            发送记录
+          </h3>
           <div className="space-y-3">
             {sentPackets.map((pkt, i) => (
               <div key={i}
-                className="flex items-center justify-between bg-surface-dark rounded-lg px-4 py-3">
+                className="flex items-center justify-between"
+                style={smallCardStyle}>
                 <div>
-                  <p className="text-sm text-white font-mono">
+                  <p style={{ fontSize: "14px", color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
                     {pkt.txHash?.slice(0, 10)}...
                   </p>
-                  <p className="text-xs text-text-secondary">
+                  <p style={{ fontSize: "12px", color: "#808080" }}>
                     {fromWei(pkt.totalAmount)} · {pkt.claimedCount}/{pkt.headCount} 已领
                   </p>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500">
+                <span style={{
+                  fontSize: "12px",
+                  padding: "0px 10px",
+                  borderRadius: "9999px",
+                  background: "#fafafa",
+                  color: "#808080",
+                  lineHeight: "24px",
+                }}>
                   {pkt.status}
                 </span>
               </div>
