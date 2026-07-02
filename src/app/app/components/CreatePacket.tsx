@@ -216,7 +216,7 @@ function FeeDetails({ gasInfo, token }: {
           color: colors.magenta,
           fontFamily: typography.fontFamily.mono,
         }}>
-          {fromWei(gasInfo.estimatedGasFeeEth)} ETH
+          {gasInfo.estimatedGasFeeEth} ETH
           <span style={{ marginLeft: spacing.px4, transform: open ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>▾</span>
         </span>
       </div>
@@ -664,20 +664,31 @@ export default function CreatePacket() {
             <ErrorBanner message={error} onDismiss={() => setError("")} />
           )}
 
-          <div style={{ display: "flex", gap: spacing.px12 }}>
-            <button
-              onClick={() => setFlow("form")}
-              style={{ ...btnGhost, flex: 1, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}
-              className="hover:bg-[rgba(255,55,199,0.08)]"
-            >
-              取消
-            </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: spacing.px8 }}>
             <button
               onClick={handleConfirm}
-              style={{ ...btnSecondary, flex: 2, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}
-              className="hover:bg-[rgba(255,55,199,0.15)]"
+              style={btnPrimary}
+              className="transition-opacity hover:opacity-80"
             >
               确认并发送
+            </button>
+            <button
+              onClick={() => setFlow("form")}
+              style={{
+                padding: `${spacing.px8} ${spacing.px16}`,
+                borderRadius: radius.md,
+                fontSize: typography.fontSize.button,
+                fontWeight: typography.fontWeight.normal,
+                fontFamily: typography.fontFamily.sans,
+                background: "transparent",
+                color: colors.textTertiary,
+                border: "none",
+                cursor: "pointer",
+                transition: "color 0.15s ease",
+              }}
+              className="hover:text-[#131313]"
+            >
+              取消，返回修改
             </button>
           </div>
         </div>
