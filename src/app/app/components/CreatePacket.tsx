@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAccount, useSendTransaction } from "wagmi";
+import { useAccount, useSendTransaction, useReadContract } from "wagmi";
 import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
@@ -405,6 +405,7 @@ export default function CreatePacket() {
   const [claimMode, setClaimMode] = useState("self");
   const [endTime, setEndTime] = useState(Math.floor(Date.now() / 1000) + 86400);
 
+  const [symbol, setSymbol] = useState("ETH");
   const [flow, setFlow] = useState<FlowState>("form");
   const [error, setError] = useState("");
   const [pendingStep, setPendingStep] = useState<"approve" | "create">("create");
@@ -431,6 +432,24 @@ export default function CreatePacket() {
   }, [chain, chains]);
 
   const weiAmount = toWei(totalAmount);
+
+  // ERC20 allowance 检查
+  const isErc20 = token !== "native" && token !== "" && !!prepared;
+  const { data: allowance, isLoading: allowanceLoading } = useReadContract({
+    address: isErc20 ? (token as `0x${string}`) : undefined,
+    abi: [{
+      inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
+      name: "allowance",
+      outputs: [{ name: "", type: "uint256" }],
+      stateMutability: "view",
+      type: "function",
+    }],
+    functionName: "allowance",
+    args: isErc20 && address ? [address, prepared.tx.to] : undefined,
+    query: { enabled: flow === "confirm" && isErc20 && !!prepared && !!address },
+  } as any);
+  const needsApprove = isErc20 && !allowanceLoading && allowance !== undefined &&
+    BigInt(prepared?.packetInfo?.total_amount || weiAmount || "0") > (allowance as unknown as bigint);
 
   // ── 第 1 步: 提交表单 → prepare ──
   async function handleSubmit(e: React.FormEvent) {
@@ -667,10 +686,16 @@ export default function CreatePacket() {
           <div style={{ display: "flex", flexDirection: "column", gap: spacing.px8 }}>
             <button
               onClick={handleConfirm}
+              disabled={allowanceLoading}
               style={btnPrimary}
-              className="transition-opacity hover:opacity-80"
+              className="transition-opacity hover:opacity-80 disabled:opacity-50"
             >
-              确认并发送
+              {allowanceLoading
+                ? "检查授权中…"
+                : needsApprove
+                ? "授权并发送"
+                : "确认并发送"
+              }
             </button>
             <button
               onClick={() => setFlow("form")}
@@ -721,63 +746,71 @@ export default function CreatePacket() {
             填写信息，创建链上红包
           </p>
 
-          {/* 链 + Token 行 */}
-          <div style={{ display: "flex", gap: spacing.px12, marginBottom: spacing.px16 }}>
-            <div style={{ flex: 1 }}>
-              <label style={label}>链</label>
-              <select
-                value={chain}
-                onChange={(e) => handleChainChange(e.target.value)}
-                style={input}
-              >
-                {chains.filter(c => c.chainId > 0).map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={label}>代币</label>
-              <TokenSelector
-                chain={chain}
-                value={token}
-                onChange={(addr) => setToken(addr)}
-              />
-            </div>
+          {/* 链选择 — 单独一行 */}
+          <div style={{ marginBottom: spacing.px16 }}>
+            <label style={label}>链</label>
+            <select
+              value={chain}
+              onChange={(e) => handleChainChange(e.target.value)}
+              style={input}
+            >
+              {chains.filter(c => c.chainId > 0).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* 金额 — 大号输入 */}
+          {/* Token 选择 — 单独一行 */}
           <div style={{ marginBottom: spacing.px16 }}>
-            <label style={label}>总金额</label>
-            <input
-              type="text"
-              value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value)}
-              placeholder="0.0"
-              required
-              style={{
-                ...input,
-                fontSize: "32px",
-                fontWeight: typography.fontWeight.emphasis,
-                height: "64px",
-                padding: `${spacing.px12} ${spacing.px16}`,
-                textAlign: "right",
+            <label style={label}>代币</label>
+            <TokenSelector
+              chain={chain}
+              value={token}
+              onChange={(addr, info) => {
+                setToken(addr);
+                if (info) setSymbol(info.symbol);
               }}
             />
-            {totalAmount && (
-              <p
+          </div>
+
+          {/* 金额 — 大号输入 + Symbol */}
+          <div style={{ marginBottom: spacing.px16 }}>
+            <label style={label}>总金额</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                value={totalAmount}
+                onChange={(e) => setTotalAmount(e.target.value)}
+                placeholder="0.0"
+                required
                 style={{
-                  fontSize: typography.fontSize.small,
-                  color: colors.textPlaceholder,
-                  marginTop: spacing.px4,
+                  ...input,
+                  fontSize: "32px",
+                  fontWeight: typography.fontWeight.emphasis,
+                  height: "64px",
+                  padding: "12px 56px 12px 16px",
                   textAlign: "right",
-                  fontFamily: typography.fontFamily.mono,
+                  boxSizing: "border-box",
+                }}
+              />
+              <span
+                style={{
+                  position: "absolute",
+                  right: spacing.px16,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: "20px",
+                  fontWeight: typography.fontWeight.emphasis,
+                  color: colors.textTertiary,
+                  fontFamily: typography.fontFamily.sans,
+                  pointerEvents: "none",
                 }}
               >
-                ≈ {weiAmount.slice(0, 14)}... wei
-              </p>
-            )}
+                {symbol}
+              </span>
+            </div>
           </div>
 
           {/* 领取人数 */}

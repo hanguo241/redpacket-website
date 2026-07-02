@@ -121,9 +121,6 @@ export default function TokenSelector({ chain, value, onChange }: TokenSelectorP
               <span style={{ fontWeight: typography.fontWeight.emphasis, color: colors.textPrimary }}>
                 {selectedToken.symbol}
               </span>
-              <span style={{ fontSize: typography.fontSize.small, color: colors.textTertiary }}>
-                {selectedToken.name}
-              </span>
             </>
           ) : isCustom ? (
             <>
@@ -293,14 +290,9 @@ export default function TokenSelector({ chain, value, onChange }: TokenSelectorP
               >
                 <div style={{ display: "flex", alignItems: "center", gap: spacing.px8 }}>
                   <NativeDot isNative={token.is_native} />
-                  <div>
-                    <div style={{ fontSize: typography.fontSize.body, fontWeight: typography.fontWeight.emphasis, color: colors.textPrimary }}>
-                      {token.symbol}
-                    </div>
-                    <div style={{ fontSize: typography.fontSize.small, color: colors.textTertiary }}>
-                      {token.name}
-                    </div>
-                  </div>
+                  <span style={{ fontSize: typography.fontSize.body, fontWeight: typography.fontWeight.emphasis, color: colors.textPrimary }}>
+                    {token.symbol}
+                  </span>
                 </div>
                 {token.token_address === value && (
                   <span style={{ color: colors.magenta, fontSize: typography.fontSize.small }}>✓</span>
