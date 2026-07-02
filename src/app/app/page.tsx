@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useDisconnect, useBalance } from "wagmi";
+import { useAccount } from "wagmi";
 import WalletInfo from "./components/WalletInfo";
 import CreatePacket from "./components/CreatePacket";
 import ClaimView from "./components/ClaimView";
@@ -18,9 +18,7 @@ type Tab = "create" | "claim";
 
 export default function AppPage() {
   const [mounted, setMounted] = useState(false);
-  const { address, isConnected, chainId } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { data: balance } = useBalance({ address });
+  const { address, isConnected } = useAccount();
   const [tab, setTab] = useState<Tab>("create");
 
   useEffect(() => {
@@ -50,15 +48,8 @@ export default function AppPage() {
           padding: `${spacing.px48} ${spacing.px16} ${spacing.px72}`,
         }}
       >
-        {/* ── 顶部栏: Logo + 钱包状态 ── */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: spacing.px24,
-          }}
-        >
+        {/* ── 顶部 Logo ── */}
+        <div style={{ marginBottom: spacing.px20 }}>
           <span
             style={{
               fontSize: "20px",
@@ -70,70 +61,12 @@ export default function AppPage() {
           >
             🧧 RedPacket
           </span>
-
-          {isConnected && address && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: spacing.px8,
-                padding: `${spacing.px4} ${spacing.px4} ${spacing.px4} ${spacing.px12}`,
-                borderRadius: radius.full,
-                border: `1px solid ${colors.borderLight}`,
-                background: colors.white,
-              }}
-            >
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: colors.success,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: typography.fontSize.button,
-                  fontFamily: typography.fontFamily.mono,
-                  color: colors.textPrimary,
-                }}
-              >
-                {address.slice(0, 6)}...{address.slice(-4)}
-              </span>
-              {chainId && (
-                <span
-                  style={{
-                    fontSize: typography.fontSize.small,
-                    color: colors.textTertiary,
-                    fontFamily: typography.fontFamily.sans,
-                  }}
-                >
-                  · {chainId === 31337 ? "LOCAL" : chainId === 1 ? "ETH" : chainId === 56 ? "BSC" : chainId}
-                </span>
-              )}
-              <button
-                onClick={() => disconnect()}
-                style={{
-                  padding: `${spacing.px4} ${spacing.px8}`,
-                  borderRadius: radius.full,
-                  fontSize: typography.fontSize.small,
-                  color: colors.textTertiary,
-                  background: colors.bgSubtle,
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: typography.fontFamily.sans,
-                  lineHeight: 1,
-                }}
-                className="hover:bg-[#ebebeb]"
-              >
-                断开
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* ── 未连接: 只显示 WalletInfo ── */}
-        {!isConnected && <WalletInfo />}
+        {/* ── 钱包信息卡片（连接 / 未连接都显示）─ ─ */}
+        <div style={{ marginBottom: spacing.px24 }}>
+          <WalletInfo />
+        </div>
 
         {/* ── 已连接: Tab + 内容 ── */}
         {isConnected && (
