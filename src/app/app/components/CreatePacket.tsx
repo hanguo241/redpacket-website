@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useSendTransaction } from "wagmi";
-import { preparePacket, createPacket } from "@/lib/api";
+import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
+import TokenSelector from "./TokenSelector";
 import {
   colors,
   radius,
@@ -728,12 +729,10 @@ export default function CreatePacket() {
             </div>
             <div style={{ flex: 1 }}>
               <label style={label}>代币</label>
-              <input
-                type="text"
+              <TokenSelector
+                chain={chain}
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="native / 地址"
-                style={input}
+                onChange={(addr) => setToken(addr)}
               />
             </div>
           </div>

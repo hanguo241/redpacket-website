@@ -199,6 +199,22 @@ export function proxyClaim(data: {
   });
 }
 
+// ============ 代币列表 ============
+
+export interface TokenInfo {
+  token_address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  is_native: boolean;
+}
+
+export function fetchTokens(chain: string) {
+  return request<{ chain: string; tokens: TokenInfo[] }>(
+    `/api/v1/config/tokens?chain=${encodeURIComponent(chain)}`
+  );
+}
+
 // ============ 配置 ============
 
 export interface ChainConfig {
