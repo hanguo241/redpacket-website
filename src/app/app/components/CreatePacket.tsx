@@ -6,6 +6,7 @@ import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
 import TokenSelector from "./TokenSelector";
+import SelectField from "./SelectField";
 import ErrorBanner from "./ErrorBanner";
 import {
   colors,
@@ -114,54 +115,54 @@ function AdvancedOptions({
           <div style={{ display: "flex", gap: spacing.px12 }}>
             <div style={{ flex: 1 }}>
               <label style={label}>类型</label>
-              <select
+              <SelectField
                 value={packetType}
-                onChange={(e) => setPacketType(e.target.value as PacketType)}
-                style={input}
-              >
-                <option value="normal">普通红包</option>
-                <option value="password">口令红包</option>
-              </select>
+                onChange={(v) => setPacketType(v as PacketType)}
+                options={[
+                  { value: "normal", label: "普通红包" },
+                  { value: "password", label: "口令红包" },
+                ]}
+              />
             </div>
             <div style={{ flex: 1 }}>
               <label style={label}>分配</label>
-              <select
+              <SelectField
                 value={subType}
-                onChange={(e) => setSubType(e.target.value as SubType)}
-                style={input}
-              >
-                <option value="average">均分</option>
-                <option value="random">随机</option>
-              </select>
+                onChange={(v) => setSubType(v as SubType)}
+                options={[
+                  { value: "average", label: "均分" },
+                  { value: "random", label: "随机" },
+                ]}
+              />
             </div>
           </div>
 
           <div>
             <label style={label}>领取模式</label>
-            <select
+            <SelectField
               value={claimMode}
-              onChange={(e) => setClaimMode(e.target.value)}
-              style={input}
-            >
-              <option value="self">自领（自己付 gas）</option>
-              <option value="proxy">代领（平台付 gas）</option>
-              <option value="both">两种模式</option>
-            </select>
+              onChange={(v) => setClaimMode(v)}
+              options={[
+                { value: "self", label: "自领（自己付 gas）" },
+                { value: "proxy", label: "代领（平台付 gas）" },
+                { value: "both", label: "两种模式" },
+              ]}
+            />
           </div>
 
           <div>
             <label style={label}>过期时间</label>
-            <select
+            <SelectField
               value={endTime}
-              onChange={(e) => setEndTime(Number(e.target.value))}
-              style={input}
-            >
-              <option value={Math.floor(Date.now() / 1000) + 3600}>1 小时后</option>
-              <option value={Math.floor(Date.now() / 1000) + 7200}>2 小时后</option>
-              <option value={Math.floor(Date.now() / 1000) + 14400}>4 小时后</option>
-              <option value={Math.floor(Date.now() / 1000) + 43200}>12 小时后</option>
-              <option value={Math.floor(Date.now() / 1000) + 86400}>24 小时后</option>
-            </select>
+              onChange={(v) => setEndTime(Number(v))}
+              options={[
+                { value: Math.floor(Date.now() / 1000) + 3600, label: "1 小时后" },
+                { value: Math.floor(Date.now() / 1000) + 7200, label: "2 小时后" },
+                { value: Math.floor(Date.now() / 1000) + 14400, label: "4 小时后" },
+                { value: Math.floor(Date.now() / 1000) + 43200, label: "12 小时后" },
+                { value: Math.floor(Date.now() / 1000) + 86400, label: "24 小时后" },
+              ]}
+            />
           </div>
 
           {packetType === "password" && (
@@ -773,17 +774,11 @@ export default function CreatePacket() {
           {/* 链选择 — 单独一行 */}
           <div style={{ marginBottom: spacing.px16 }}>
             <label style={label}>链</label>
-            <select
+            <SelectField
               value={chain}
-              onChange={(e) => handleChainChange(e.target.value)}
-              style={input}
-            >
-              {chains.filter(c => c.chainId > 0).map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => handleChainChange(v)}
+              options={chains.filter(c => c.chainId > 0).map((c) => ({ value: c.name, label: c.name }))}
+            />
           </div>
 
           {/* Token 选择 — 单独一行 */}
