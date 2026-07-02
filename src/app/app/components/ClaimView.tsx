@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { getPacketStatus, prepareClaim, confirmClaim, proxyClaim } from "@/lib/api";
 import { fromWei } from "./CreatePacket";
@@ -132,17 +132,29 @@ interface ClaimRecord {
 }
 
 // ── 主组件 ──
-export default function ClaimView() {
+export default function ClaimView({ initialPacketId }: { initialPacketId?: string | null }) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
 
-  const [packetId, setPacketId] = useState("");
+  const [packetId, setPacketId] = useState(initialPacketId || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [claimHistory, setClaimHistory] = useState<ClaimRecord[]>([]);
   const [claimStatus, setClaimStatus] = useState<"idle" | "signing" | "sending" | "done">("idle");
+
+  // 从 URL 携带红包 ID 时自动查询
+  useEffect(() => {
+    if (initialPacketId) {
+      setLoading(true);
+      setError("");
+      getPacketStatus(initialPacketId)
+        .then((status) => setResult(status))
+        .catch((err) => setError(err.message || "查询失败"))
+        .finally(() => setLoading(false));
+    }
+  }, [initialPacketId]);
 
   function extractPacketId(input: string): string {
     const trimmed = input.trim();
