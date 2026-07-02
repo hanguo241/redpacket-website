@@ -1,0 +1,63 @@
+@use 'tokens' as *;
+
+// ═══════════════════════════════════════════
+// Forms & Inputs
+// ═══════════════════════════════════════════
+
+.rp-input {
+  width: 100%;
+  padding: $space-12 $space-16;
+  border-radius: $radius-md;
+  font-size: 16px;
+  font-weight: 400;
+  color: $text-primary;
+  background: $bg-white;
+  border: 1px solid $border;
+  outline: none;
+  font-family: $font-sans;
+  height: 44px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.rp-input:focus {
+  border-color: $magenta;
+  box-shadow: 0px 0px 0px 3px rgba(255, 55, 199, 0.1);
+}
+
+// ── Select ──
+
+.rp-select {
+  @extend .rp-input;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: $space-40;
+}
+
+// ── 金额大号输入 ──
+
+.rp-input-amount {
+  @extend .rp-input;
+  font-size: 32px;
+  font-weight: 535;
+  height: 64px;
+  text-align: right;
+  padding: $space-12 56px $space-12 $space-16;
+}
+
+// ── Input 错误态 ──
+
+.rp-input-error {
+  border-color: $error !important;
+  box-shadow: 0px 0px 0px 2px rgba(255, 0, 26, 0.1) !important;
+}
+
+.rp-error-text {
+  font-size: 12px;
+  color: $error;
+  font-family: $font-sans;
+  margin-top: $space-4;
+  margin-left: $space-4;
+}

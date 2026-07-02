@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useConnectors, useDisconnect, useBalance } from "wagmi";
-import { colors, spacing, radius, typography, container, btnPrimary, btnPrimaryCls, containerCls, cardEmbedCls } from "../design";
+import { colors } from "../design";
 
 export default function WalletInfo() {
   const [mounted, setMounted] = useState(false);
@@ -18,42 +18,18 @@ export default function WalletInfo() {
 
   if (!mounted) return null;
 
-  // ── 未连接：显示连接器列表 ──
   if (!isConnected) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: spacing.px48,
-        }}
-      >
-        <div style={{ fontSize: "48px", marginBottom: spacing.px16, lineHeight: 1 }}>🔗</div>
-        <p
-          style={{
-            fontSize: typography.fontSize.body,
-            color: colors.textSecondary,
-            marginBottom: spacing.px24,
-            fontFamily: typography.fontFamily.sans,
-          }}
-        >
-          选择钱包连接
-        </p>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: spacing.px12,
-            maxWidth: "320px",
-            margin: "0 auto",
-          }}
-        >
+      <div className="text-center py-12">
+        <div className="text-5xl mb-4 leading-none">🔗</div>
+        <p className="text-base text-[#4d4d4d] mb-6 font-sans">选择钱包连接</p>
+        <div className="flex flex-col gap-3 max-w-[320px] mx-auto">
           {connectors.map((connector) => (
             <button
               key={connector.uid}
               onClick={() => connect({ connector })}
               disabled={isPending}
-              style={btnPrimary}
-              className="transition-opacity hover:opacity-80 disabled:opacity-50"
+              className="rp-btn-primary"
             >
               {isPending ? "连接中..." : `连接 ${connector.name || connector.id}`}
             </button>
@@ -63,7 +39,6 @@ export default function WalletInfo() {
     );
   }
 
-  // ── 已连接：显示钱包信息卡片 ──
   const chainLabel =
     chainId === 31337 ? "LOCAL" :
     chainId === 1 ? "ETH" :
@@ -75,72 +50,21 @@ export default function WalletInfo() {
     : "—";
 
   return (
-    <div
-      style={{
-        ...container,
-        padding: spacing.px16,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: spacing.px12 }}>
-        <div
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            background: colors.magentaOverlay,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            flexShrink: 0,
-          }}
-        >
+    <div className="rp-container flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-[rgba(255,55,199,0.08)] flex items-center justify-center text-base shrink-0">
           🧧
         </div>
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: spacing.px8,
-            }}
-          >
-            <span
-              style={{
-                fontSize: typography.fontSize.button,
-                fontFamily: typography.fontFamily.mono,
-                color: colors.textPrimary,
-                fontWeight: typography.fontWeight.emphasis,
-              }}
-            >
+          <div className="flex items-center gap-2">
+            <span className="text-[13.3333px] font-mono text-[#131313] font-[535]">
               {address?.slice(0, 8)}...{address?.slice(-6)}
             </span>
-            <span
-              style={{
-                fontSize: typography.fontSize.small,
-                padding: `0 ${spacing.px8}`,
-                borderRadius: radius.sm,
-                background: colors.bgSubtle,
-                color: colors.textTertiary,
-                fontFamily: typography.fontFamily.mono,
-                lineHeight: "20px",
-              }}
-            >
+            <span className="text-xs px-1.5 rounded-[6px] bg-[#F9F9F9] text-[#808080] font-mono leading-5">
               {chainLabel}
             </span>
           </div>
-          <p
-            style={{
-              fontSize: typography.fontSize.small,
-              color: colors.textTertiary,
-              fontFamily: typography.fontFamily.mono,
-              margin: 0,
-              marginTop: spacing.px2,
-            }}
-          >
+          <p className="text-xs text-[#808080] font-mono m-0 mt-0.5">
             {balanceStr}
           </p>
         </div>
@@ -148,19 +72,7 @@ export default function WalletInfo() {
 
       <button
         onClick={() => disconnect()}
-        style={{
-          padding: `${spacing.px8} ${spacing.px12}`,
-          borderRadius: radius.md,
-          fontSize: typography.fontSize.small,
-          fontFamily: typography.fontFamily.sans,
-          color: colors.textTertiary,
-          background: "transparent",
-          border: `1px solid ${colors.borderLight}`,
-          cursor: "pointer",
-          transition: "all 0.15s ease",
-          whiteSpace: "nowrap",
-        }}
-        className="hover:bg-[#f5f5f5] hover:text-[#131313]"
+        className="px-3 py-1.5 rounded-xl text-xs font-sans text-[#808080] bg-transparent border border-[#F2F2F2] cursor-pointer transition-all whitespace-nowrap hover:bg-[#f5f5f5] hover:text-[#131313]"
       >
         断开
       </button>

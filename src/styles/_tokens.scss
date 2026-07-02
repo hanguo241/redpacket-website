@@ -1,0 +1,73 @@
+// ═══════════════════════════════════════════
+// Design Tokens — RedPacket App
+// ═══════════════════════════════════════════
+
+// ── Colors ──
+$magenta: #FF37C7;
+$magenta-light: #FC72FF;
+$magenta-dark: #E620A8;
+$magenta-overlay: rgba(255, 55, 199, 0.08);
+$magenta-overlay-hover: rgba(255, 55, 199, 0.15);
+
+$text-primary: #131313;
+$text-secondary: #4d4d4d;
+$text-tertiary: #808080;
+$text-placeholder: #9B9B9B;
+$text-disabled: #CBCDE1;
+
+$bg-white: #FFFFFF;
+$bg-subtle: #F9F9F9;
+$bg-light: #F2F2F2;
+$border: #CBCDE1;
+$border-light: #F2F2F2;
+
+$success: #075229;
+$success-bg: rgba(7, 82, 41, 0.12);
+$error: #FF001A;
+$error-bg: rgba(255, 0, 26, 0.12);
+$info: #409192;
+$info-bg: rgba(64, 145, 146, 0.12);
+
+// ── Typography ──
+$font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-mono: var(--font-geist-mono), 'Courier New', monospace;
+
+// ── Spacing (4px grid) ──
+$space-2: 2px;
+$space-4: 4px;
+$space-8: 8px;
+$space-12: 12px;
+$space-16: 16px;
+$space-20: 20px;
+$space-24: 24px;
+$space-32: 32px;
+$space-40: 40px;
+$space-48: 48px;
+$space-72: 72px;
+
+// ── Border Radius ──
+$radius-sm: 6px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-xxl: 32px;
+$radius-full: 9999px;
+
+// ── Shadows ──
+$shadow-card: 0px 4px 16px rgba(0, 0, 0, 0.04);
+$shadow-subtle: 0px 1px 4px rgba(0, 0, 0, 0.04);
+$shadow-standard: 0px 4px 16px rgba(0, 0, 0, 0.08);
+$shadow-lifted: 0px 8px 24px rgba(0, 0, 0, 0.12);
+
+// ── CSS Custom Properties (可用在 inline style 中) ──
+:root {
+  --rp-magenta: #{$magenta};
+  --rp-radius-md: #{$radius-md};
+  --rp-radius-lg: #{$radius-lg};
+  --rp-radius-xl: #{$radius-xl};
+  --rp-space-4: #{$space-4};
+  --rp-space-8: #{$space-8};
+  --rp-space-12: #{$space-12};
+  --rp-space-16: #{$space-16};
+  --rp-space-24: #{$space-24};
+}

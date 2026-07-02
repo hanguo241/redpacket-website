@@ -14,7 +14,7 @@ export default function SelectField({ value, onChange, options, disabled }: Sele
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full px-4 py-3 pr-10 rounded-xl text-base font-normal font-sans text-[#131313] bg-white border border-[#CBCDE1] outline-none h-11 box-border cursor-pointer appearance-none transition-colors duration-150 focus:border-[#FF37C7] focus:shadow-[0px_0px_0px_3px_rgba(255,55,199,0.1)]"
+        className="rp-select"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

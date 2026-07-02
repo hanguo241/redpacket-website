@@ -8,11 +8,11 @@ interface ErrorBannerProps {
   type?: "error" | "warning" | "info" | "success";
 }
 
-const CONFIG: Record<string, { bg: string; border: string; color: string; label: string }> = {
-  error:   { bg: "rgba(255, 0, 26, 0.08)", border: "rgba(255, 0, 26, 0.2)", color: "#CC0014", label: "错误" },
-  warning: { bg: "rgba(234, 179, 8, 0.08)", border: "rgba(234, 179, 8, 0.25)", color: "#92400E", label: "提示" },
-  info:    { bg: "rgba(64, 145, 146, 0.08)", border: "rgba(64, 145, 146, 0.2)", color: "#2C6E6F", label: "信息" },
-  success: { bg: "rgba(7, 82, 41, 0.08)", border: "rgba(7, 82, 41, 0.2)", color: "#075229", label: "成功" },
+const CONFIG: Record<string, { bg: string; border: string; color: string }> = {
+  error:   { bg: "rgba(255, 0, 26, 0.08)", border: "rgba(255, 0, 26, 0.2)", color: "#CC0014" },
+  warning: { bg: "rgba(234, 179, 8, 0.08)", border: "rgba(234, 179, 8, 0.25)", color: "#92400E" },
+  info:    { bg: "rgba(64, 145, 146, 0.08)", border: "rgba(64, 145, 146, 0.2)", color: "#2C6E6F" },
+  success: { bg: "rgba(7, 82, 41, 0.08)", border: "rgba(7, 82, 41, 0.2)", color: "#075229" },
 };
 
 export default function ErrorBanner({ message, onDismiss, type = "error" }: ErrorBannerProps) {
@@ -27,7 +27,7 @@ export default function ErrorBanner({ message, onDismiss, type = "error" }: Erro
 
   return (
     <div
-      className="flex items-start gap-3 p-3 rounded-xl transition-all duration-200"
+      className="rp-error-banner"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
@@ -35,10 +35,7 @@ export default function ErrorBanner({ message, onDismiss, type = "error" }: Erro
         transform: visible ? "translateY(0)" : "translateY(-4px)",
       }}
     >
-      <div
-        className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 mt-0.5"
-        style={{ background: cfg.color, color: "#fff" }}
-      >
+      <div className="rp-error-icon" style={{ background: cfg.color }}>
         {icon}
       </div>
 
@@ -51,7 +48,7 @@ export default function ErrorBanner({ message, onDismiss, type = "error" }: Erro
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="w-5 h-5 rounded-full bg-transparent border-none cursor-pointer text-[14px] flex items-center justify-center opacity-50 shrink-0 mt-0.5 hover:opacity-100"
+          className="rp-error-close"
           style={{ color: cfg.color }}
         >
           ✕
