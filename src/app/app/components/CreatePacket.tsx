@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAccount, useSendTransaction, useReadContract } from "wagmi";
+import { useAccount, useSendTransaction } from "wagmi";
 import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
@@ -433,23 +433,47 @@ export default function CreatePacket() {
 
   const weiAmount = toWei(totalAmount);
 
-  // ERC20 allowance 检查
-  const isErc20 = token !== "native" && token !== "" && !!prepared;
-  const { data: allowance, isLoading: allowanceLoading } = useReadContract({
-    address: isErc20 ? (token as `0x${string}`) : undefined,
-    abi: [{
-      inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
-      name: "allowance",
-      outputs: [{ name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    }],
-    functionName: "allowance",
-    args: isErc20 && address ? [address, prepared.tx.to] : undefined,
-    query: { enabled: flow === "confirm" && isErc20 && !!prepared && !!address },
-  } as any);
-  const needsApprove = isErc20 && !allowanceLoading && allowance !== undefined &&
-    BigInt(prepared?.packetInfo?.total_amount || weiAmount || "0") > (allowance as unknown as bigint);
+  // ERC20 allowance 检查（通过钱包 provider，确保走对链）
+  const [needsApprove, setNeedsApprove] = useState(false);
+  const [allowanceLoading, setAllowanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (flow !== "confirm" || !prepared) return;
+    const p = prepared;
+    const tokenAddr = p.packetInfo?.token;
+    if (!tokenAddr || tokenAddr === "native") {
+      setNeedsApprove(false);
+      return;
+    }
+    const amount = p.packetInfo?.total_amount || weiAmount || "0";
+
+    async function checkAllowance() {
+      setAllowanceLoading(true);
+      try {
+        const provider = (window as any).ethereum;
+        if (!provider) { setNeedsApprove(true); return; }
+
+        // allowance(address owner, address spender) → uint256
+        const owner = address?.toLowerCase() || "";
+        const spender = (p.tx.to as string).toLowerCase();
+        // ABI encode: selector(4) + owner(32) + spender(32)
+        const data = `0xdd62ed3e${owner.padStart(66, "0")}${spender.padStart(66, "0")}`;
+
+        const result = await provider.request({
+          method: "eth_call",
+          params: [{ to: tokenAddr, data }, "latest"],
+        });
+        const allowanceWei = BigInt(result || "0");
+        setNeedsApprove(BigInt(amount) > allowanceWei);
+      } catch {
+        // 检查失败时保守处理：假设需要 approve
+        setNeedsApprove(true);
+      } finally {
+        setAllowanceLoading(false);
+      }
+    }
+    checkAllowance();
+  }, [flow, prepared, address, weiAmount]);
 
   // ── 第 1 步: 提交表单 → prepare ──
   async function handleSubmit(e: React.FormEvent) {
