@@ -4,6 +4,123 @@ import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { getPacketStatus, prepareClaim, confirmClaim, proxyClaim } from "@/lib/api";
 import { fromWei } from "./CreatePacket";
+import {
+  colors,
+  radius,
+  spacing,
+  typography,
+  shadows,
+  container,
+  input,
+  btnPrimary,
+  btnSecondary,
+  btnGhost,
+  label,
+  cardEmbed,
+} from "../design";
+
+// ── Status Badge ──
+function StatusBadge({ status }: { status: string }) {
+  const palette: Record<string, { bg: string; color: string; label: string }> = {
+    active:    { bg: colors.successBg, color: colors.success, label: "进行中" },
+    completed: { bg: colors.successBg, color: colors.success, label: "已完成" },
+    pending:   { bg: colors.infoBg, color: colors.info, label: "待确认" },
+    expired:   { bg: colors.errorBg, color: colors.error, label: "已过期" },
+    refunded:  { bg: colors.errorBg, color: colors.error, label: "已退款" },
+    failed:    { bg: colors.errorBg, color: colors.error, label: "失败" },
+  };
+  const s = palette[status] || { bg: colors.bgSubtle, color: colors.textTertiary, label: status };
+
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: `${spacing.px4} ${spacing.px8}`,
+        borderRadius: radius.sm,
+        fontSize: typography.fontSize.small,
+        fontWeight: typography.fontWeight.normal,
+        fontFamily: typography.fontFamily.sans,
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.bg}`,
+      }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+// ── 领取记录 ──
+function ClaimHistory({ history }: { history: ClaimRecord[] }) {
+  if (history.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: spacing.px20 }}>
+      <h4
+        style={{
+          fontSize: typography.fontSize.button,
+          fontWeight: typography.fontWeight.emphasis,
+          color: colors.textPrimary,
+          fontFamily: typography.fontFamily.sans,
+          margin: 0,
+          marginBottom: spacing.px12,
+        }}
+      >
+        领取记录
+      </h4>
+      <div style={{ display: "flex", flexDirection: "column", gap: spacing.px8 }}>
+        {history.map((r, i) => (
+          <div
+            key={i}
+            style={{
+              ...cardEmbed,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontSize: typography.fontSize.button,
+                  color: colors.textPrimary,
+                  fontFamily: typography.fontFamily.mono,
+                  margin: 0,
+                  marginBottom: spacing.px2,
+                }}
+              >
+                {r.packetId.slice(0, 8)}...
+              </p>
+              <p
+                style={{
+                  fontSize: typography.fontSize.small,
+                  color: colors.textTertiary,
+                  fontFamily: typography.fontFamily.sans,
+                  margin: 0,
+                }}
+              >
+                {fromWei(r.amount)} · {r.txHash?.slice(0, 10)}...
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: typography.fontSize.small,
+                padding: `0 ${spacing.px8}`,
+                borderRadius: radius.full,
+                background: colors.successBg,
+                color: colors.success,
+                lineHeight: "24px",
+                fontFamily: typography.fontFamily.sans,
+              }}
+            >
+              {r.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface ClaimRecord {
   packetId: string;
@@ -13,45 +130,7 @@ interface ClaimRecord {
   timestamp: number;
 }
 
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "24px",
-  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  borderRadius: "6px",
-  fontSize: "14px",
-  color: "#171717",
-  background: "#fff",
-  border: "none",
-  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
-  outline: "none",
-  fontFamily: "var(--font-geist-sans), sans-serif",
-};
-
-const btnPrimary: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 20px",
-  borderRadius: "6px",
-  fontSize: "14px",
-  fontWeight: 500,
-  lineHeight: 1.43,
-  background: "#171717",
-  color: "#fff",
-  border: "none",
-  cursor: "pointer",
-};
-
-const smallCardStyle: React.CSSProperties = {
-  background: "#fafafa",
-  borderRadius: "8px",
-  padding: "16px",
-};
-
+// ── 主组件 ──
 export default function ClaimView() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -62,8 +141,8 @@ export default function ClaimView() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [claimHistory, setClaimHistory] = useState<ClaimRecord[]>([]);
+  const [claimStatus, setClaimStatus] = useState<"idle" | "signing" | "sending" | "done">("idle");
 
-  // 从链接中提取 packetId
   function extractPacketId(input: string): string {
     const trimmed = input.trim();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(trimmed)) return trimmed;
@@ -71,6 +150,7 @@ export default function ClaimView() {
     return m ? m[1] : trimmed;
   }
 
+  // ── 查询红包 ──
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
     const id = extractPacketId(packetId);
@@ -79,6 +159,7 @@ export default function ClaimView() {
     setLoading(true);
     setError("");
     setResult(null);
+    setClaimStatus("idle");
 
     try {
       const status = await getPacketStatus(id);
@@ -90,48 +171,11 @@ export default function ClaimView() {
     }
   }
 
-  async function handleProxyClaim() {
-    if (!isConnected || !address || !result) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      // 用户签署授权消息
-      const authMsg = `RedPacket: authorize claim ${result.packet_id}`;
-      const userSignature = await signMessageAsync({ message: authMsg });
-
-      // 调用后端代领接口
-      const res = await proxyClaim({
-        packet_id: result.packet_id,
-        user_address: address,
-        user_signature: userSignature,
-        proof: password ? { password } : undefined,
-      });
-
-      const record: ClaimRecord = {
-        packetId: result.packet_id,
-        amount: res.amount,
-        status: "confirmed",
-        txHash: res.tx_hash,
-        timestamp: Date.now(),
-      };
-      setClaimHistory((prev) => [record, ...prev]);
-      setResult(null);
-      setPacketId("");
-      setPassword("");
-    } catch (err: any) {
-      setError(err.message || "代领失败");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // ── 自领 ──
   async function handleClaim() {
     if (!isConnected || !address || !result) return;
-
-    setLoading(true);
     setError("");
+    setClaimStatus("signing");
 
     try {
       const prep = await prepareClaim({
@@ -140,6 +184,7 @@ export default function ClaimView() {
         proof: password ? { password } : undefined,
       });
 
+      setClaimStatus("sending");
       const provider = (window as any).ethereum;
       if (!provider) throw new Error("No Ethereum provider");
 
@@ -159,7 +204,7 @@ export default function ClaimView() {
           recipient: address,
           tx_hash: txHash,
         });
-      } catch (_) {}
+      } catch { /* 后台确认，忽略前端错误 */ }
 
       const record: ClaimRecord = {
         packetId: result.packet_id,
@@ -169,130 +214,285 @@ export default function ClaimView() {
         timestamp: Date.now(),
       };
       setClaimHistory((prev) => [record, ...prev]);
+      setClaimStatus("done");
       setResult(null);
       setPacketId("");
       setPassword("");
     } catch (err: any) {
       setError(err.message || "领取失败");
-    } finally {
-      setLoading(false);
+      setClaimStatus("idle");
     }
   }
 
+  // ── 代领 ──
+  async function handleProxyClaim() {
+    if (!isConnected || !address || !result) return;
+    setError("");
+    setClaimStatus("signing");
+
+    try {
+      const authMsg = `RedPacket: authorize claim ${result.packet_id}`;
+      const userSignature = await signMessageAsync({ message: authMsg });
+
+      setClaimStatus("sending");
+      const res = await proxyClaim({
+        packet_id: result.packet_id,
+        user_address: address,
+        user_signature: userSignature,
+        proof: password ? { password } : undefined,
+      });
+
+      const record: ClaimRecord = {
+        packetId: result.packet_id,
+        amount: res.amount,
+        status: "confirmed",
+        txHash: res.tx_hash,
+        timestamp: Date.now(),
+      };
+      setClaimHistory((prev) => [record, ...prev]);
+      setClaimStatus("done");
+      setResult(null);
+      setPacketId("");
+      setPassword("");
+    } catch (err: any) {
+      setError(err.message || "代领失败");
+      setClaimStatus("idle");
+    }
+  }
+
+  const showPassword = result?.packet_type === "password";
+  const claimMode = result?.claim_mode || "both";
+  const canClaim = result?.status === "active" && isConnected;
+
   return (
-    <div className="space-y-6">
-      {/* 查询红包 */}
-      <form onSubmit={handleLookup} style={cardStyle} className="space-y-4">
-        <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
+    <div>
+      {/* ── 查询表单 ── */}
+      <form onSubmit={handleLookup} style={container}>
+        <h3
+          style={{
+            fontSize: typography.fontSize.h3,
+            fontWeight: typography.fontWeight.emphasis,
+            color: colors.textPrimary,
+            fontFamily: typography.fontFamily.sans,
+            margin: 0,
+            marginBottom: spacing.px8,
+            letterSpacing: "-0.48px",
+          }}
+        >
           领取红包
         </h3>
-        <div>
-          <label style={{ display: "block", fontSize: "13px", color: "#808080", marginBottom: "4px" }}>
-            红包 ID 或链接
-          </label>
+        <p
+          style={{
+            fontSize: typography.fontSize.small,
+            color: colors.textTertiary,
+            marginBottom: spacing.px20,
+            fontFamily: typography.fontFamily.sans,
+          }}
+        >
+          输入红包 ID 或分享链接
+        </p>
+
+        <div style={{ marginBottom: spacing.px16 }}>
           <input
             type="text"
             value={packetId}
             onChange={(e) => setPacketId(e.target.value)}
             placeholder="粘贴红包链接或输入 ID"
-            style={inputStyle}
+            style={input}
           />
         </div>
-        <button type="submit" disabled={loading}
+
+        <button
+          type="submit"
+          disabled={loading}
           style={btnPrimary}
-          className="transition-opacity hover:opacity-80 disabled:opacity-50">
+          className="transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
           {loading ? "查询中..." : "查询红包"}
         </button>
       </form>
 
+      {/* ── 错误提示 ── */}
       {error && (
-        <div style={{
-          ...cardStyle,
-          padding: "16px",
-          boxShadow: "rgba(255,91,79,0.15) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px",
-        }}>
-          <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>
+        <div
+          style={{
+            ...container,
+            marginTop: spacing.px12,
+            padding: spacing.px16,
+            borderColor: "rgba(255, 0, 26, 0.3)",
+          }}
+        >
+          <p style={{ fontSize: typography.fontSize.small, color: colors.error, fontFamily: typography.fontFamily.sans, margin: 0 }}>
+            {error}
+          </p>
         </div>
       )}
 
-      {/* 红包信息 */}
+      {/* ── 红包信息 + 领取 ── */}
       {result && (
-        <div style={cardStyle} className="space-y-4">
-          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
-            🧧 红包信息
-          </h3>
-          <div className="grid grid-cols-2 gap-3" style={{ fontSize: "14px" }}>
-            <div><span style={{ color: "#808080" }}>状态:</span> <span style={{ color: "#171717" }}>{result.status}</span></div>
-            <div><span style={{ color: "#808080" }}>总额:</span> <span style={{ color: "#171717" }}>{fromWei(result.gross_amount || result.total_amount)}</span></div>
-            <div><span style={{ color: "#808080" }}>领取池:</span> <span style={{ color: "#171717" }}>{fromWei(result.total_amount)}</span></div>
-            <div><span style={{ color: "#808080" }}>平台费:</span> <span style={{ color: "#171717" }}>{fromWei(result.platform_fee_wei || "0")}</span></div>
-            <div><span style={{ color: "#808080" }}>已领:</span> <span style={{ color: "#171717" }}>{result.claimed_count}/{result.head_count}</span></div>
-            <div><span style={{ color: "#808080" }}>Gas:</span> <span style={{ color: "#171717" }}>{result.claim_mode}</span></div>
+        <div style={{ ...container, marginTop: spacing.px12 }}>
+          {/* 头部：状态标记 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: spacing.px16,
+            }}
+          >
+            <span
+              style={{
+                fontSize: typography.fontSize.body,
+                fontWeight: typography.fontWeight.emphasis,
+                color: colors.textPrimary,
+                fontFamily: typography.fontFamily.sans,
+              }}
+            >
+              🧧 红包信息
+            </span>
+            <StatusBadge status={result.status} />
           </div>
 
-          {result.status === "active" && isConnected && (
-            <div className="space-y-3" style={{ borderTop: "1px solid #ebebeb", paddingTop: "16px" }}>
-              <input type="text" value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="输入口令（如有）"
-                style={inputStyle} />
+          {/* 详情 */}
+          <div style={cardEmbed}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: spacing.px12,
+              }}
+            >
+              <div>
+                <p style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, margin: 0, marginBottom: spacing.px2, fontFamily: typography.fontFamily.sans }}>
+                  领取池
+                </p>
+                <p style={{ fontSize: typography.fontSize.button, color: colors.textPrimary, fontFamily: typography.fontFamily.mono, margin: 0 }}>
+                  {fromWei(result.total_amount)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, margin: 0, marginBottom: spacing.px2, fontFamily: typography.fontFamily.sans }}>
+                  已领 / 总人数
+                </p>
+                <p style={{ fontSize: typography.fontSize.button, color: colors.textPrimary, fontFamily: typography.fontFamily.mono, margin: 0 }}>
+                  {result.claimed_count} / {result.head_count}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, margin: 0, marginBottom: spacing.px2, fontFamily: typography.fontFamily.sans }}>
+                  总额
+                </p>
+                <p style={{ fontSize: typography.fontSize.button, color: colors.textTertiary, fontFamily: typography.fontFamily.mono, margin: 0 }}>
+                  {fromWei(result.gross_amount || result.total_amount)}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, margin: 0, marginBottom: spacing.px2, fontFamily: typography.fontFamily.sans }}>
+                  Gas 模式
+                </p>
+                <p style={{ fontSize: typography.fontSize.button, color: colors.textTertiary, fontFamily: typography.fontFamily.mono, margin: 0 }}>
+                  {claimMode === "self" ? "自领" : claimMode === "proxy" ? "代领" : "自领/代领"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 领取操作 ── */}
+          {canClaim && (
+            <div style={{ marginTop: spacing.px16 }}>
+              {showPassword && (
+                <div style={{ marginBottom: spacing.px12 }}>
+                  <label style={label}>口令</label>
+                  <input
+                    type="text"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="输入口令"
+                    style={input}
+                  />
+                </div>
+              )}
+
+              {/* Pending 状态 */}
+              {claimStatus !== "idle" && claimStatus !== "done" && (
+                <div style={{ textAlign: "center", marginBottom: spacing.px16 }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      border: `2px solid ${colors.borderLight}`,
+                      borderTopColor: colors.magenta,
+                      animation: "claimSpin 0.8s linear infinite",
+                      margin: "0 auto",
+                      marginBottom: spacing.px8,
+                    }}
+                  />
+                  <style>{`@keyframes claimSpin { to { transform: rotate(360deg); } }`}</style>
+                  <p style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, fontFamily: typography.fontFamily.sans, margin: 0 }}>
+                    {claimStatus === "signing" ? "请签名授权…" : "发送交易中…"}
+                  </p>
+                </div>
+              )}
 
               {/* 自领按钮 */}
-              {(result.claim_mode === "self" || result.claim_mode === "both") && (
-                <button onClick={handleClaim} disabled={loading}
-                  style={btnPrimary}
-                  className="transition-opacity hover:opacity-80 disabled:opacity-50">
-                  {loading ? "领取中..." : "自领（自己付 gas）🧧"}
+              {(claimMode === "self" || claimMode === "both") && claimStatus === "idle" && (
+                <button
+                  onClick={handleClaim}
+                  style={{ ...btnSecondary, marginBottom: spacing.px8 }}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  自领（自己付 gas）
                 </button>
               )}
 
               {/* 代领按钮 */}
-              {(result.claim_mode === "proxy" || result.claim_mode === "both") && (
-                <button onClick={handleProxyClaim} disabled={loading}
-                  style={{ ...btnPrimary, background: "#0068d6" }}
-                  className="transition-opacity hover:opacity-80 disabled:opacity-50">
-                  {loading ? "代领中..." : "代领（平台付 gas）⚡"}
+              {(claimMode === "proxy" || claimMode === "both") && claimStatus === "idle" && (
+                <button
+                  onClick={handleProxyClaim}
+                  style={btnPrimary}
+                  className="transition-opacity hover:opacity-80"
+                >
+                  代领（平台付 gas）
                 </button>
               )}
+
+              {/* 领取成功 */}
+              {claimStatus === "done" && (
+                <div
+                  style={{
+                    ...cardEmbed,
+                    textAlign: "center",
+                    background: colors.successBg,
+                  }}
+                >
+                  <p style={{ fontSize: typography.fontSize.body, color: colors.success, fontFamily: typography.fontFamily.sans, margin: 0 }}>
+                    ✅ 领取成功！
+                  </p>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* 未连接提示 */}
+          {!isConnected && (
+            <p
+              style={{
+                marginTop: spacing.px16,
+                fontSize: typography.fontSize.small,
+                color: colors.textTertiary,
+                textAlign: "center",
+                fontFamily: typography.fontFamily.sans,
+              }}
+            >
+              请先连接钱包
+            </p>
           )}
         </div>
       )}
 
-      {/* 领取记录 */}
-      {claimHistory.length > 0 && (
-        <div style={cardStyle}>
-          <h3 style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.32px", color: "#171717", marginBottom: "16px" }}>
-            领取记录
-          </h3>
-          <div className="space-y-3">
-            {claimHistory.map((r, i) => (
-              <div key={i}
-                className="flex items-center justify-between"
-                style={smallCardStyle}>
-                <div>
-                  <p style={{ fontSize: "14px", color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {r.packetId.slice(0, 8)}...
-                  </p>
-                  <p style={{ fontSize: "12px", color: "#808080" }}>
-                    {fromWei(r.amount)} · {r.txHash?.slice(0, 10)}...
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: "12px",
-                  padding: "0px 10px",
-                  borderRadius: "9999px",
-                  background: "#ebf5ff",
-                  color: "#0068d6",
-                  lineHeight: "24px",
-                }}>
-                  {r.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── 领取记录 ── */}
+      <ClaimHistory history={claimHistory} />
     </div>
   );
 }

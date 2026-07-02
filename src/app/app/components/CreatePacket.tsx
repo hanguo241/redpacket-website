@@ -1,15 +1,27 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAccount, useSendTransaction } from "wagmi";
 import { preparePacket, createPacket } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
+import {
+  colors,
+  radius,
+  spacing,
+  typography,
+  shadows,
+  container,
+  input,
+  btnPrimary,
+  btnSecondary,
+  btnGhost,
+  label,
+  cardEmbed,
+} from "../design";
 
-type PacketType = "normal" | "password";
-type SubType = "average" | "random";
+// ── 工具函数 ──
 
-/** 将用户输入的单位 (如 ETH) 转为 wei (18 位小数) */
 function toWei(amount: string): string {
   try {
     const trimmed = amount.trim();
@@ -24,7 +36,6 @@ function toWei(amount: string): string {
   }
 }
 
-/** wei 转回可读单位 (仅展示) */
 export function fromWei(wei: string): string {
   try {
     const s = wei.padStart(19, "0");
@@ -36,51 +47,351 @@ export function fromWei(wei: string): string {
   }
 }
 
-interface SentPacket {
-  packetId: string;
-  shareUrl: string;
-  status: string;
-  totalAmount: string;
-  claimedCount: number;
-  headCount: number;
-  txHash?: string;
+type PacketType = "normal" | "password";
+type SubType = "average" | "random";
+type FlowState = "form" | "confirm" | "pending" | "success";
+
+// ── 高级选项面板 ──
+function AdvancedOptions({
+  packetType,
+  setPacketType,
+  subType,
+  setSubType,
+  password,
+  setPassword,
+  claimMode,
+  setClaimMode,
+  endTime,
+  setEndTime,
+}: {
+  packetType: PacketType;
+  setPacketType: (v: PacketType) => void;
+  subType: SubType;
+  setSubType: (v: SubType) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  claimMode: string;
+  setClaimMode: (v: string) => void;
+  endTime: number;
+  setEndTime: (v: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: spacing.px4,
+          padding: 0,
+          fontSize: typography.fontSize.button,
+          color: colors.textTertiary,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: typography.fontFamily.sans,
+        }}
+        className="hover:text-[#131313]"
+      >
+        ⚙️ 高级选项
+        <span style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            marginTop: spacing.px12,
+            display: "flex",
+            flexDirection: "column",
+            gap: spacing.px12,
+          }}
+        >
+          <div style={{ display: "flex", gap: spacing.px12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>类型</label>
+              <select
+                value={packetType}
+                onChange={(e) => setPacketType(e.target.value as PacketType)}
+                style={input}
+              >
+                <option value="normal">普通红包</option>
+                <option value="password">口令红包</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={label}>分配</label>
+              <select
+                value={subType}
+                onChange={(e) => setSubType(e.target.value as SubType)}
+                style={input}
+              >
+                <option value="average">均分</option>
+                <option value="random">随机</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={label}>领取模式</label>
+            <select
+              value={claimMode}
+              onChange={(e) => setClaimMode(e.target.value)}
+              style={input}
+            >
+              <option value="self">自领（自己付 gas）</option>
+              <option value="proxy">代领（平台付 gas）</option>
+              <option value="both">两种模式</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={label}>过期时间</label>
+            <select
+              value={endTime}
+              onChange={(e) => setEndTime(Number(e.target.value))}
+              style={input}
+            >
+              <option value={Math.floor(Date.now() / 1000) + 3600}>1 小时后</option>
+              <option value={Math.floor(Date.now() / 1000) + 7200}>2 小时后</option>
+              <option value={Math.floor(Date.now() / 1000) + 14400}>4 小时后</option>
+              <option value={Math.floor(Date.now() / 1000) + 43200}>12 小时后</option>
+              <option value={Math.floor(Date.now() / 1000) + 86400}>24 小时后</option>
+            </select>
+          </div>
+
+          {packetType === "password" && (
+            <div>
+              <label style={label}>口令</label>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="设置领取口令"
+                style={input}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "24px",
-  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
-};
+// ── 费用详情面板 ──
+function FeeDetails({ gasInfo, token }: {
+  gasInfo: {
+    platformFeeWei: string;
+    claimPoolWei: string;
+    estimatedGasFeeWei: string;
+    estimatedGasFeeEth: string;
+    gasPriceGwei: string;
+    multiplier: number;
+  } | null;
+  token: string;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!gasInfo) return null;
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  borderRadius: "6px",
-  fontSize: "14px",
-  color: "#171717",
-  background: "#fff",
-  border: "none",
-  boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
-  outline: "none",
-  fontFamily: "var(--font-geist-sans), sans-serif",
-};
+  return (
+    <div style={cardEmbed}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          cursor: "pointer",
+        }}
+        onClick={() => setOpen(!open)}
+      >
+        <span style={{ fontSize: typography.fontSize.button, color: colors.textSecondary, fontFamily: typography.fontFamily.sans }}>
+          费用明细
+        </span>
+        <span style={{
+          fontSize: typography.fontSize.button,
+          color: colors.magenta,
+          fontFamily: typography.fontFamily.mono,
+        }}>
+          {fromWei(gasInfo.estimatedGasFeeEth)} ETH
+          <span style={{ marginLeft: spacing.px4, transform: open ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>▾</span>
+        </span>
+      </div>
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "13px",
-  color: "#808080",
-  marginBottom: "4px",
-};
+      {open && (
+        <div style={{ marginTop: spacing.px12, display: "flex", flexDirection: "column", gap: spacing.px8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: typography.fontSize.small }}>
+            <span style={{ color: colors.textTertiary }}>平台费</span>
+            <span style={{ color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+              {fromWei(gasInfo.platformFeeWei)} {token === "native" ? "ETH" : "Token"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: typography.fontSize.small }}>
+            <span style={{ color: colors.textTertiary }}>领取池</span>
+            <span style={{ color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+              {fromWei(gasInfo.claimPoolWei)} {token === "native" ? "ETH" : "Token"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: typography.fontSize.small }}>
+            <span style={{ color: colors.textTertiary }}>Gas Price</span>
+            <span style={{ color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+              {gasInfo.gasPriceGwei} Gwei
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: typography.fontSize.small }}>
+            <span style={{ color: colors.textTertiary }}>估算倍数</span>
+            <span style={{ color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+              {gasInfo.multiplier}x
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
+// ── 发送成功卡片 ──
+function SuccessView({
+  shareUrl,
+  txHash,
+  totalAmount,
+  token,
+  onReset,
+}: {
+  shareUrl: string;
+  txHash?: string;
+  totalAmount: string;
+  token: string;
+  onReset: () => void;
+}) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: "48px", marginBottom: spacing.px16, lineHeight: 1 }}>🎉</div>
+      <h3
+        style={{
+          fontSize: typography.fontSize.h3,
+          fontWeight: typography.fontWeight.emphasis,
+          color: colors.textPrimary,
+          fontFamily: typography.fontFamily.sans,
+          margin: 0,
+          marginBottom: spacing.px8,
+        }}
+      >
+        红包已发送！
+      </h3>
+      <p
+        style={{
+          fontSize: typography.fontSize.body,
+          color: colors.textSecondary,
+          marginBottom: spacing.px24,
+          fontFamily: typography.fontFamily.sans,
+        }}
+      >
+        {fromWei(totalAmount)} {token === "native" ? "ETH" : "Token"}
+      </p>
+
+      {/* 分享链接 */}
+      <div
+        style={{
+          ...cardEmbed,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: spacing.px8,
+          marginBottom: spacing.px20,
+          textAlign: "left",
+        }}
+      >
+        <span
+          style={{
+            fontSize: typography.fontSize.small,
+            color: colors.textTertiary,
+            fontFamily: typography.fontFamily.sans,
+            flex: 1,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {shareUrl}
+        </span>
+        <button
+          onClick={() => navigator.clipboard.writeText(shareUrl)}
+          style={btnGhost}
+          className="hover:bg-[rgba(255,55,199,0.08)]"
+        >
+          复制链接
+        </button>
+      </div>
+
+      {txHash && (
+        <p
+          style={{
+            fontSize: typography.fontSize.small,
+            color: colors.textTertiary,
+            fontFamily: typography.fontFamily.mono,
+            marginBottom: spacing.px20,
+            wordBreak: "break-all",
+          }}
+        >
+          Tx: {txHash.slice(0, 10)}...{txHash.slice(-6)}
+        </p>
+      )}
+
+      <button onClick={onReset} style={btnPrimary} className="transition-opacity hover:opacity-80">
+        再发一个
+      </button>
+    </div>
+  );
+}
+
+// ── Pending 状态 ──
+function PendingView({ step }: { step: "approve" | "create" }) {
+  return (
+    <div style={{ textAlign: "center", padding: spacing.px32 }}>
+      <div
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          border: `3px solid ${colors.borderLight}`,
+          borderTopColor: colors.magenta,
+          animation: "spin 0.8s linear infinite",
+          margin: "0 auto",
+          marginBottom: spacing.px20,
+        }}
+      />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <p
+        style={{
+          fontSize: typography.fontSize.body,
+          color: colors.textPrimary,
+          fontFamily: typography.fontFamily.sans,
+          marginBottom: spacing.px8,
+        }}
+      >
+        {step === "approve" ? "授权代币中…" : "创建红包中…"}
+      </p>
+      <p
+        style={{
+          fontSize: typography.fontSize.small,
+          color: colors.textTertiary,
+          fontFamily: typography.fontFamily.sans,
+        }}
+      >
+        请在钱包中确认交易
+      </p>
+    </div>
+  );
+}
+
+// ── 主组件 ──
 export default function CreatePacket() {
   const { address, isConnected } = useAccount();
   const { chains, loading: chainsLoading, getChainByName } = useChainConfig();
   const { switchToChain } = useChainSwitch();
-  const { sendTransactionAsync } = useSendTransaction()
-
-  const [switchingChain, setSwitchingChain] = useState(false);
-  const [chainSwitchErr, setChainSwitchErr] = useState("");
+  const { sendTransactionAsync } = useSendTransaction();
 
   const [chain, setChain] = useState("");
   const [token, setToken] = useState("native");
@@ -90,12 +401,26 @@ export default function CreatePacket() {
   const [subType, setSubType] = useState<SubType>("average");
   const [password, setPassword] = useState("");
   const [claimMode, setClaimMode] = useState("self");
-  const [endTime, setEndTime] = useState(
-    () => Math.floor(Date.now() / 1000) + 86400
-  );
+  const [endTime, setEndTime] = useState(Math.floor(Date.now() / 1000) + 86400);
+
+  const [flow, setFlow] = useState<FlowState>("form");
+  const [error, setError] = useState("");
+  const [pendingStep, setPendingStep] = useState<"approve" | "create">("create");
+  const [successData, setSuccessData] = useState<{
+    shareUrl: string;
+    txHash?: string;
+    totalAmount: string;
+  } | null>(null);
+
+  // prepare 返回的数据
+  const [prepared, setPrepared] = useState<{
+    packetId: string;
+    tx: { to: `0x${string}`; data: `0x${string}`; value: bigint | undefined };
+    gasInfo: any;
+    packetInfo: any;
+  } | null>(null);
 
   const chainInitRef = useRef(false);
-
   useEffect(() => {
     if (!chain && chains.length > 0 && !chainInitRef.current) {
       chainInitRef.current = true;
@@ -103,45 +428,24 @@ export default function CreatePacket() {
     }
   }, [chain, chains]);
 
-  const [step, setStep] = useState<"form" | "sign" | "done">("form");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [pendingTx, setPendingTx] = useState<any>(null);
-  const [pendingPacketId, setPendingPacketId] = useState("");
-  const [pendingPacketInfo, setPendingPacketInfo] = useState<any>(null);
-  const [weiAmount, setWeiAmount] = useState("");
-  const [sentPackets, setSentPackets] = useState<SentPacket[]>([]);
+  const weiAmount = toWei(totalAmount);
 
-  const [gasInfo, setGasInfo] = useState<{
-    estimatedGasFeeWei: string;
-    estimatedGasFeeEth: string;
-    gasPriceGwei: string;
-    multiplier: number;
-    gasReserveWei: string;
-    feeBps: number;
-    platformFeeWei: string;
-    claimPoolWei: string;
-    refundAvailableAt: number;
-  } | null>(null);
-
+  // ── 第 1 步: 提交表单 → prepare ──
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isConnected || !address) return;
-
-    setLoading(true);
     setError("");
 
-    try {
-      const amountWei = toWei(totalAmount);
-      if (amountWei === "0" || amountWei === "") {
-        throw new Error("请输入有效的金额");
-      }
-      setWeiAmount(amountWei);
+    if (weiAmount === "0" || weiAmount === "") {
+      setError("请输入有效的金额");
+      return;
+    }
 
+    try {
       const res = await preparePacket({
         chain,
         token,
-        total_amount: amountWei,
+        total_amount: weiAmount,
         head_count: headCount,
         packet_type: packetType,
         sub_type: subType,
@@ -150,58 +454,54 @@ export default function CreatePacket() {
         end_time: endTime,
       });
 
-      setPendingPacketId(res.packet_id);
-      setPendingTx({
-        to: res.transaction.to as `0x${string}`,
-        data: res.transaction.data as `0x${string}`,
-        value: res.transaction.value
-          ? (BigInt(res.transaction.value) as any)
-          : undefined,
+      setPrepared({
+        packetId: res.packet_id,
+        tx: {
+          to: res.transaction.to as `0x${string}`,
+          data: res.transaction.data as `0x${string}`,
+          value: res.transaction.value ? BigInt(res.transaction.value) : undefined,
+        },
+        gasInfo: {
+          platformFeeWei: res.platform_fee_wei,
+          claimPoolWei: res.claim_pool_wei,
+          estimatedGasFeeWei: res.estimated_gas_fee_wei,
+          estimatedGasFeeEth: res.estimated_gas_fee_eth,
+          gasPriceGwei: res.gas_price_gwei,
+          multiplier: res.gas_estimate_multiplier,
+        },
+        packetInfo: {
+          chain, token, total_amount: weiAmount, head_count: headCount,
+          packet_type: packetType, sub_type: subType, claim_mode: claimMode,
+          password: packetType === "password" ? password : undefined,
+          end_time: endTime, start_time: 0,
+          gas_reserve_wei: res.suggested_gas_reserve_wei,
+          gas_estimate_multiplier: res.gas_estimate_multiplier,
+          fee_bps: res.fee_bps,
+          platform_fee_wei: res.platform_fee_wei,
+          claim_pool_wei: res.claim_pool_wei,
+        },
       });
-      setGasInfo({
-        estimatedGasFeeWei: res.estimated_gas_fee_wei,
-        estimatedGasFeeEth: res.estimated_gas_fee_eth,
-        gasPriceGwei: res.gas_price_gwei,
-        multiplier: res.gas_estimate_multiplier,
-        gasReserveWei: res.suggested_gas_reserve_wei,
-        feeBps: res.fee_bps,
-        platformFeeWei: res.platform_fee_wei,
-        claimPoolWei: res.claim_pool_wei,
-        refundAvailableAt: res.refund_available_at,
-      });
-      setPendingPacketInfo({
-        chain, token, total_amount: amountWei, head_count: headCount,
-        packet_type: packetType, sub_type: subType, claim_mode: claimMode,
-        password: packetType === "password" ? password : undefined,
-        end_time: endTime, start_time: 0,
-        gas_reserve_wei: res.suggested_gas_reserve_wei,
-        gas_estimate_multiplier: res.gas_estimate_multiplier,
-        fee_bps: res.fee_bps,
-        platform_fee_wei: res.platform_fee_wei,
-        claim_pool_wei: res.claim_pool_wei,
-      });
-
-      setStep("sign");
+      setFlow("confirm");
     } catch (err: any) {
       setError(err.message || "创建失败");
-    } finally {
-      setLoading(false);
     }
   }
 
-  async function handleSign() {
-    if (!pendingTx) return;
-    setLoading(true);
+  // ── 第 2 步: 确认 → 发送交易 ──
+  async function handleConfirm() {
+    if (!prepared) return;
     setError("");
+    setFlow("pending");
+
     try {
-      const info = pendingPacketInfo || {};
+      const info = prepared.packetInfo;
       const isErc20 = info.token && info.token !== "native";
 
-      // ERC20 需要先 approve 合约扣款
+      // ERC20: 先 approve
       if (isErc20 && info.token) {
+        setPendingStep("approve");
         const amount = info.total_amount || weiAmount;
-        // approve(address,uint256) selector: 0x095ea7b3
-        const spenderPadded = pendingTx.to.replace("0x", "").padStart(64, "0");
+        const spenderPadded = prepared.tx.to.replace("0x", "").padStart(64, "0");
         const amountPadded = BigInt(amount).toString(16).padStart(64, "0");
         const approveData = `0x095ea7b3${spenderPadded}${amountPadded}`;
 
@@ -212,19 +512,22 @@ export default function CreatePacket() {
         if (!approveHash) throw new Error("授权失败");
       }
 
-      const txHash_: string = await sendTransactionAsync({
-        to: pendingTx.to,
-        data: pendingTx.data,
-        value: pendingTx.value,
-      })
-      if (!txHash_) throw new Error("交易失败");
+      // 创建红包
+      setPendingStep("create");
+      const txHash = await sendTransactionAsync({
+        to: prepared.tx.to,
+        data: prepared.tx.data,
+        value: prepared.tx.value,
+      });
+      if (!txHash) throw new Error("交易失败");
 
+      // 落库
       const result = await createPacket({
-        packet_id: pendingPacketId,
-        tx_hash: txHash_,
+        packet_id: prepared.packetId,
+        tx_hash: txHash,
         creator_address: address || "",
         chain: info.chain || chain,
-        contract_address: pendingTx.to,
+        contract_address: prepared.tx.to,
         token: info.token || "native",
         total_amount: info.total_amount || weiAmount,
         head_count: info.head_count || headCount,
@@ -238,335 +541,279 @@ export default function CreatePacket() {
         gas_estimate_multiplier: info.gas_estimate_multiplier || 1.2,
         fee_bps: info.fee_bps || 20,
       });
-      const txHash = result.tx_hash || txHash_;
 
-      const newPacket: SentPacket = {
-        packetId: pendingPacketId,
+      setSuccessData({
         shareUrl: result.share_url,
-        status: "active",
+        txHash: result.tx_hash || txHash,
         totalAmount: result.claim_pool_wei || info.claim_pool_wei || weiAmount,
-        claimedCount: 0,
-        headCount,
-        txHash,
-      };
-      setSentPackets((prev) => [newPacket, ...prev]);
-      setStep("done");
-      setTotalAmount("");
-      setPassword("");
+      });
+      setFlow("success");
     } catch (err: any) {
       setError(err.message || "交易签名失败");
-    } finally {
-      setLoading(false);
+      setFlow("confirm");
     }
   }
 
-  function copyLink(url: string) {
-    navigator.clipboard.writeText(url);
+  function handleReset() {
+    setFlow("form");
+    setPrepared(null);
+    setSuccessData(null);
+    setError("");
+    setTotalAmount("");
+    setPassword("");
   }
 
-  const handleChainChange = useCallback(
-    async (newChain: string) => {
-      setChain(newChain);
-      setChainSwitchErr("");
-
-      const cfg = getChainByName(newChain);
-      if (!cfg || cfg.chainId <= 0) return;
-
-      setSwitchingChain(true);
-      try {
-        await switchToChain(cfg.chainId, cfg.name, cfg.rpcUrl);
-      } catch (err: any) {
-        setChainSwitchErr(err?.message || "切换链失败");
-      } finally {
-        setSwitchingChain(false);
-      }
-    },
-    [getChainByName, switchToChain]
-  );
-
-  if (!isConnected || !address) {
-    return (
-      <div style={cardStyle} className="text-center">
-        <p style={{ fontSize: "14px", color: "#808080" }}>请先连接钱包</p>
-      </div>
-    );
+  // ── 链切换 ──
+  async function handleChainChange(newChain: string) {
+    setChain(newChain);
+    const cfg = getChainByName(newChain);
+    if (cfg && cfg.chainId > 0) {
+      try { await switchToChain(cfg.chainId, cfg.name, cfg.rpcUrl); }
+      catch { /* 用户拒绝忽略 */ }
+    }
   }
 
   if (chainsLoading) {
     return (
-      <div style={cardStyle} className="text-center">
-        <p style={{ fontSize: "14px", color: "#808080" }}>加载链配置中...</p>
+      <div style={container}>
+        <p style={{ fontSize: typography.fontSize.body, color: colors.textTertiary, textAlign: "center" }}>
+          加载链配置中...
+        </p>
       </div>
     );
   }
 
-  const btnPrimary: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 20px",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: 500,
-    lineHeight: 1.43,
-    background: "#171717",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
-  };
-
-  const btnSecondary: React.CSSProperties = {
-    ...btnPrimary,
-    background: "#fff",
-    color: "#171717",
-    boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px",
-  };
-
-  const smallCardStyle: React.CSSProperties = {
-    background: "#fafafa",
-    borderRadius: "8px",
-    padding: "16px",
-  };
-
   return (
-    <div className="space-y-6">
-      {/* ======== 步骤1: 表单 ======== */}
-      {step === "form" && (
-        <form onSubmit={handleSubmit} style={cardStyle} className="space-y-4">
-          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
-            创建红包
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label style={labelStyle}>链</label>
-              <div style={{ position: "relative" }}>
-                <select value={chain} onChange={(e) => handleChainChange(e.target.value)}
-                  disabled={switchingChain}
-                  style={{ ...inputStyle, appearance: "none" as any }}>
-                  {chains.filter(c => c.chainId > 0).map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name} {c.contractAddress ? `(${c.contractAddress.slice(0, 6)}...)` : ""}
-                    </option>
-                  ))}
-                </select>
-                {switchingChain && (
-                  <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", color: "#808080" }}>
-                    切换中...
-                  </span>
-                )}
-              </div>
-              {chainSwitchErr && (
-                <p style={{ fontSize: "12px", color: "#ff5b4f", marginTop: "4px" }}>{chainSwitchErr}</p>
-              )}
-            </div>
-            <div>
-              <label style={labelStyle}>Token</label>
-              <input type="text" value={token} onChange={(e) => setToken(e.target.value)}
-                placeholder="native 或合约地址" style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>总金额</label>
-              <input type="text" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)}
-                placeholder="100" required style={inputStyle} />
-              {totalAmount && (
-                <p style={{ fontSize: "12px", color: "#808080", marginTop: "4px" }}>
-                  ≈ {toWei(totalAmount).slice(0, 12)}... wei
-                </p>
-              )}
-            </div>
-            <div>
-              <label style={labelStyle}>领取人数</label>
-              <input type="number" value={headCount} onChange={(e) => setHeadCount(Number(e.target.value))}
-                min={1} max={1000} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>红包类型</label>
-              <select value={packetType} onChange={(e) => setPacketType(e.target.value as PacketType)}
-                style={{ ...inputStyle, appearance: "none" as any }}>
-                <option value="normal">普通红包</option>
-                <option value="password">口令红包</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>分配方式</label>
-              <select value={subType} onChange={(e) => setSubType(e.target.value as SubType)}
-                style={{ ...inputStyle, appearance: "none" as any }}>
-                <option value="average">均分</option>
-                <option value="random">随机</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>领取模式</label>
-              <select value={claimMode} onChange={(e) => setClaimMode(e.target.value)}
-                style={{ ...inputStyle, appearance: "none" as any }}>
-                <option value="self">自领（用户付 gas）</option>
-                <option value="proxy">代领（平台付 gas）</option>
-              </select>
-            </div>
-            {packetType === "password" && (
-              <div>
-                <label style={labelStyle}>口令</label>
-                <input type="text" value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="设置领取口令" style={inputStyle} />
-              </div>
-            )}
-          </div>
-
-          {error && <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>}
-          <button type="submit" disabled={loading}
-            style={btnPrimary}
-            className="transition-opacity hover:opacity-80 disabled:opacity-50">
-            {loading ? "提交中..." : "创建红包"}
-          </button>
-        </form>
+    <div style={container}>
+      {/* ── 成功状态 ── */}
+      {flow === "success" && successData && (
+        <SuccessView
+          shareUrl={successData.shareUrl}
+          txHash={successData.txHash}
+          totalAmount={successData.totalAmount}
+          token={token}
+          onReset={handleReset}
+        />
       )}
 
-      {/* ======== 步骤2: 钱包签名 ======== */}
-      {step === "sign" && (
-        <div style={cardStyle} className="text-center space-y-4">
-          <div style={{ fontSize: "32px" }}>✍️</div>
-          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
-            确认交易
+      {/* ── Pending 状态 ── */}
+      {flow === "pending" && <PendingView step={pendingStep} />}
+
+      {/* ── 确认状态 ── */}
+      {flow === "confirm" && prepared && (
+        <div>
+          <h3
+            style={{
+              fontSize: typography.fontSize.h3,
+              fontWeight: typography.fontWeight.emphasis,
+              color: colors.textPrimary,
+              fontFamily: typography.fontFamily.sans,
+              margin: 0,
+              marginBottom: spacing.px8,
+            }}
+          >
+            确认红包
           </h3>
-          <p style={{ fontSize: "14px", color: "#808080" }}>
-            请在钱包中确认签名以创建红包
+          <p
+            style={{
+              fontSize: typography.fontSize.small,
+              color: colors.textTertiary,
+              marginBottom: spacing.px20,
+              fontFamily: typography.fontFamily.sans,
+            }}
+          >
+            请在钱包中确认交易
           </p>
 
-          {/* 金额明细 */}
-          <div style={smallCardStyle} className="text-left space-y-3">
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "#808080" }}>红包金额</span>
-              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
+          {/* 金额摘要 */}
+          <div style={cardEmbed}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacing.px8 }}>
+              <span style={{ fontSize: typography.fontSize.body, color: colors.textTertiary, fontFamily: typography.fontFamily.sans }}>
+                红包金额
+              </span>
+              <span style={{ fontSize: typography.fontSize.body, fontWeight: typography.fontWeight.emphasis, color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
                 {totalAmount} {token === "native" ? "ETH" : "Token"}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "#808080" }}>平台费 (千分之二)</span>
-              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                {gasInfo ? fromWei(gasInfo.platformFeeWei) : "0"} {token === "native" ? "ETH" : "Token"}
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: spacing.px8 }}>
+              <span style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, fontFamily: typography.fontFamily.sans }}>
+                领取人数
+              </span>
+              <span style={{ fontSize: typography.fontSize.small, color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+                {headCount} 人
               </span>
             </div>
-            <div style={{ fontSize: "12px", color: "#808080", paddingLeft: "16px" }}>
-              平台收取红包金额的千分之二，剩余金额进入领取池
-            </div>
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "#808080" }}>领取池</span>
-              <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                {gasInfo ? fromWei(gasInfo.claimPoolWei) : "0"} {token === "native" ? "ETH" : "Token"}
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: typography.fontSize.small, color: colors.textTertiary, fontFamily: typography.fontFamily.sans }}>
+                领取模式
+              </span>
+              <span style={{ fontSize: typography.fontSize.small, color: colors.textPrimary, fontFamily: typography.fontFamily.mono }}>
+                {claimMode === "self" ? "自领" : claimMode === "proxy" ? "代领" : "两种模式"}
               </span>
             </div>
+          </div>
 
-            {gasInfo && (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "#808080" }}>预估 Gas 费</span>
-                  <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {fromWei(gasInfo.estimatedGasFeeWei)} ETH
-                  </span>
-                </div>
-                <div style={{ fontSize: "12px", color: "#808080", paddingLeft: "16px" }} className="space-y-0.5">
-                  <p>Gas Price: {gasInfo.gasPriceGwei} Gwei</p>
-                  <p>估算倍数: {gasInfo.multiplier}x</p>
-                </div>
-                <div style={{ borderTop: "1px solid #ebebeb", paddingTop: "8px" }}
-                  className="flex justify-between text-sm font-semibold">
-                  <span style={{ color: "#808080" }}>总计扣款</span>
-                  <span style={{ color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {fromWei(gasInfo.estimatedGasFeeWei)} ETH + {totalAmount} {token === "native" ? "ETH" : "Token"}
-                  </span>
-                </div>
-              </>
+          {/* Gas 信息 */}
+          <div style={{ marginTop: spacing.px12, marginBottom: spacing.px20 }}>
+            <FeeDetails gasInfo={prepared.gasInfo} token={token} />
+          </div>
+
+          {error && (
+            <p style={{ fontSize: typography.fontSize.small, color: colors.error, marginBottom: spacing.px12, fontFamily: typography.fontFamily.sans }}>
+              {error}
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: spacing.px12 }}>
+            <button
+              onClick={() => setFlow("form")}
+              style={{ ...btnGhost, flex: 1, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}
+              className="hover:bg-[rgba(255,55,199,0.08)]"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleConfirm}
+              style={{ ...btnSecondary, flex: 2, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}
+              className="hover:bg-[rgba(255,55,199,0.15)]"
+            >
+              确认并发送
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 表单状态 ── */}
+      {flow === "form" && (
+        <form onSubmit={handleSubmit}>
+          <h3
+            style={{
+              fontSize: typography.fontSize.h3,
+              fontWeight: typography.fontWeight.emphasis,
+              color: colors.textPrimary,
+              fontFamily: typography.fontFamily.sans,
+              margin: 0,
+              marginBottom: spacing.px8,
+              letterSpacing: "-0.48px",
+            }}
+          >
+            创建红包
+          </h3>
+          <p
+            style={{
+              fontSize: typography.fontSize.small,
+              color: colors.textTertiary,
+              marginBottom: spacing.px24,
+              fontFamily: typography.fontFamily.sans,
+            }}
+          >
+            填写信息，创建链上红包
+          </p>
+
+          {/* 链 + Token 行 */}
+          <div style={{ display: "flex", gap: spacing.px12, marginBottom: spacing.px16 }}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>链</label>
+              <select
+                value={chain}
+                onChange={(e) => handleChainChange(e.target.value)}
+                style={input}
+              >
+                {chains.filter(c => c.chainId > 0).map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={label}>代币</label>
+              <input
+                type="text"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="native / 地址"
+                style={input}
+              />
+            </div>
+          </div>
+
+          {/* 金额 — 大号输入 */}
+          <div style={{ marginBottom: spacing.px16 }}>
+            <label style={label}>总金额</label>
+            <input
+              type="text"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              placeholder="0.0"
+              required
+              style={{
+                ...input,
+                fontSize: "32px",
+                fontWeight: typography.fontWeight.emphasis,
+                height: "64px",
+                padding: `${spacing.px12} ${spacing.px16}`,
+                textAlign: "right",
+              }}
+            />
+            {totalAmount && (
+              <p
+                style={{
+                  fontSize: typography.fontSize.small,
+                  color: colors.textPlaceholder,
+                  marginTop: spacing.px4,
+                  textAlign: "right",
+                  fontFamily: typography.fontFamily.mono,
+                }}
+              >
+                ≈ {weiAmount.slice(0, 14)}... wei
+              </p>
             )}
           </div>
 
-          {/* 交易详情 */}
-          <div style={{
-            background: "#fafafa",
-            borderRadius: "8px",
-            padding: "12px",
-            textAlign: "left",
-            fontSize: "12px",
-            fontFamily: "var(--font-geist-mono), monospace",
-            color: "#808080",
-            wordBreak: "break-all",
-          }}>
-            <p style={{ marginBottom: "4px" }}>
-              <span style={{ color: "#808080" }}>合约:</span> {pendingTx?.to?.slice(0, 10)}...{pendingTx?.to?.slice(-6)}
-            </p>
-            <p style={{ marginBottom: "4px" }}>
-              <span style={{ color: "#808080" }}>数据:</span> {pendingTx?.data?.slice(0, 66)}...
-            </p>
-            <p><span style={{ color: "#808080" }}>Value:</span> {pendingTx?.value?.toString() || "0"} wei</p>
+          {/* 领取人数 */}
+          <div style={{ marginBottom: spacing.px16 }}>
+            <label style={label}>领取人数</label>
+            <input
+              type="number"
+              value={headCount}
+              onChange={(e) => setHeadCount(Number(e.target.value))}
+              min={1}
+              max={1000}
+              style={input}
+            />
           </div>
 
-          {error && <p style={{ fontSize: "14px", color: "#ff5b4f" }}>{error}</p>}
-          <div className="flex gap-3">
-            <button onClick={() => setStep("form")} style={{ flex: 1, ...btnSecondary }}
-              className="transition-shadow hover:shadow-[rgba(0,0,0,0.12)_0px_0px_0px_1px]">
-              取消
-            </button>
-            <button onClick={handleSign} disabled={loading} style={{ flex: 1, ...btnPrimary }}
-              className="transition-opacity hover:opacity-80 disabled:opacity-50">
-              {loading ? "签名中..." : "确认签名"}
-            </button>
+          {/* 高级选项 */}
+          <div style={{ marginBottom: spacing.px20 }}>
+            <AdvancedOptions
+              packetType={packetType}
+              setPacketType={setPacketType}
+              subType={subType}
+              setSubType={setSubType}
+              password={password}
+              setPassword={setPassword}
+              claimMode={claimMode}
+              setClaimMode={setClaimMode}
+              endTime={endTime}
+              setEndTime={setEndTime}
+            />
           </div>
-        </div>
-      )}
 
-      {/* ======== 步骤3: 完成 ======== */}
-      {step === "done" && sentPackets.length > 0 && (
-        <div style={{
-          ...cardStyle,
-          textAlign: "center",
-          boxShadow: "rgba(34,197,94,0.15) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
-        }} className="space-y-4">
-          <div style={{ fontSize: "32px" }}>🎉</div>
-          <h3 style={{ fontSize: "24px", fontWeight: 600, letterSpacing: "-0.96px", color: "#171717" }}>
-            红包已发送！
-          </h3>
-          <p style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "#808080", wordBreak: "break-all" }}>
-            Tx: {sentPackets[0].txHash}
-          </p>
-          <button onClick={() => { setStep("form"); setPendingTx(null); }}
+          {error && (
+            <p style={{ fontSize: typography.fontSize.small, color: colors.error, marginBottom: spacing.px12, fontFamily: typography.fontFamily.sans }}>
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
             style={btnPrimary}
-            className="transition-opacity hover:opacity-80">
-            再发一个
+            className="transition-opacity hover:opacity-80"
+          >
+            创建红包
           </button>
-        </div>
-      )}
-
-      {/* 发送记录 */}
-      {sentPackets.length > 0 && step !== "done" && (
-        <div style={cardStyle}>
-          <h3 style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.32px", color: "#171717", marginBottom: "16px" }}>
-            发送记录
-          </h3>
-          <div className="space-y-3">
-            {sentPackets.map((pkt, i) => (
-              <div key={i}
-                className="flex items-center justify-between"
-                style={smallCardStyle}>
-                <div>
-                  <p style={{ fontSize: "14px", color: "#171717", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {pkt.txHash?.slice(0, 10)}...
-                  </p>
-                  <p style={{ fontSize: "12px", color: "#808080" }}>
-                    {fromWei(pkt.totalAmount)} · {pkt.claimedCount}/{pkt.headCount} 已领
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: "12px",
-                  padding: "0px 10px",
-                  borderRadius: "9999px",
-                  background: "#fafafa",
-                  color: "#808080",
-                  lineHeight: "24px",
-                }}>
-                  {pkt.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        </form>
       )}
     </div>
   );
