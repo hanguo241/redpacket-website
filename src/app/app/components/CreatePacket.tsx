@@ -194,6 +194,24 @@ export default function CreatePacket() {
     setLoading(true);
     setError("");
     try {
+      const info = pendingPacketInfo || {};
+      const isErc20 = info.token && info.token !== "native";
+
+      // ERC20 需要先 approve 合约扣款
+      if (isErc20 && info.token) {
+        const amount = info.total_amount || weiAmount;
+        // approve(address,uint256) selector: 0x095ea7b3
+        const spenderPadded = pendingTx.to.replace("0x", "").padStart(64, "0");
+        const amountPadded = BigInt(amount).toString(16).padStart(64, "0");
+        const approveData = `0x095ea7b3${spenderPadded}${amountPadded}`;
+
+        const approveHash = await sendTransactionAsync({
+          to: info.token as `0x${string}`,
+          data: approveData as `0x${string}`,
+        });
+        if (!approveHash) throw new Error("授权失败");
+      }
+
       const txHash_: string = await sendTransactionAsync({
         to: pendingTx.to,
         data: pendingTx.data,
@@ -201,7 +219,6 @@ export default function CreatePacket() {
       })
       if (!txHash_) throw new Error("交易失败");
 
-      const info = pendingPacketInfo || {};
       const result = await createPacket({
         packet_id: pendingPacketId,
         tx_hash: txHash_,
