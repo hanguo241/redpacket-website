@@ -591,7 +591,7 @@ export default function CreatePacket() {
       setSuccessData({
         shareUrl: result.share_url,
         txHash: result.tx_hash || txHash,
-        totalAmount: result.claim_pool_wei || info.claim_pool_wei || weiAmount,
+        totalAmount: result.gross_amount || info.total_amount || weiAmount,
       });
       setFlow("success");
     } catch (err: any) {
