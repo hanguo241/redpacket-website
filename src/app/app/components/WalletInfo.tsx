@@ -2,15 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useConnectors, useDisconnect, useBalance } from "wagmi";
-import {
-  colors,
-  radius,
-  spacing,
-  typography,
-  btnPrimary,
-  container,
-  cardEmbed,
-} from "../design";
+import { colors, spacing, radius, typography, container, btnPrimary, btnPrimaryCls, containerCls, cardEmbedCls } from "../design";
 
 export default function WalletInfo() {
   const [mounted, setMounted] = useState(false);

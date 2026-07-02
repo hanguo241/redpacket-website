@@ -2,14 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { fetchTokens, type TokenInfo } from "@/lib/api";
-import {
-  colors,
-  radius,
-  spacing,
-  typography,
-  input,
-  cardEmbed,
-} from "../design";
+import { colors, spacing, radius, typography, input, inputCls, cardEmbedCls } from "../design";
 
 interface TokenSelectorProps {
   chain: string;

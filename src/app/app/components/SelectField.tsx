@@ -1,7 +1,5 @@
 "use client";
 
-import { colors, radius, spacing, typography } from "../design";
-
 interface SelectFieldProps {
   value: string | number;
   onChange: (value: string) => void;
@@ -11,31 +9,12 @@ interface SelectFieldProps {
 
 export default function SelectField({ value, onChange, options, disabled }: SelectFieldProps) {
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        style={{
-          width: "100%",
-          padding: `${spacing.px12} ${spacing.px40} ${spacing.px12} ${spacing.px16}`,
-          borderRadius: radius.md,
-          fontSize: typography.fontSize.body,
-          fontWeight: typography.fontWeight.normal,
-          fontFamily: typography.fontFamily.sans,
-          color: colors.textPrimary,
-          background: colors.white,
-          border: `1px solid ${colors.border}`,
-          outline: "none",
-          height: "44px",
-          boxSizing: "border-box",
-          cursor: "pointer",
-          appearance: "none",
-          WebkitAppearance: "none",
-          MozAppearance: "none",
-          transition: "border-color 0.15s ease",
-        }}
-        className="focus:border-[#FF37C7] focus:shadow-[0px_0px_0px_3px_rgba(255,55,199,0.1)]"
+        className="w-full px-4 py-3 pr-10 rounded-xl text-base font-normal font-sans text-[#131313] bg-white border border-[#CBCDE1] outline-none h-11 box-border cursor-pointer appearance-none transition-colors duration-150 focus:border-[#FF37C7] focus:shadow-[0px_0px_0px_3px_rgba(255,55,199,0.1)]"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -43,18 +22,7 @@ export default function SelectField({ value, onChange, options, disabled }: Sele
           </option>
         ))}
       </select>
-      <div
-        style={{
-          position: "absolute",
-          right: spacing.px12,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          color: colors.textTertiary,
-          fontSize: "10px",
-          lineHeight: 1,
-        }}
-      >
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#808080] text-[10px] leading-none">
         ▾
       </div>
     </div>

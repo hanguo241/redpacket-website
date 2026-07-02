@@ -6,12 +6,7 @@ import { useSearchParams } from "next/navigation";
 import WalletInfo from "./components/WalletInfo";
 import CreatePacket from "./components/CreatePacket";
 import ClaimView from "./components/ClaimView";
-import {
-  colors,
-  spacing,
-  typography,
-  container,
-} from "./design";
+import { colors, spacing, typography, containerCls, container } from "./design";
 
 type Tab = "create" | "claim";
 
