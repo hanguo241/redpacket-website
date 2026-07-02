@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { getPacketStatus, prepareClaim, confirmClaim, proxyClaim } from "@/lib/api";
 import { fromWei } from "./CreatePacket";
+import ErrorBanner from "./ErrorBanner";
 import {
   colors,
   radius,
@@ -314,17 +315,8 @@ export default function ClaimView() {
 
       {/* ── 错误提示 ── */}
       {error && (
-        <div
-          style={{
-            ...container,
-            marginTop: spacing.px12,
-            padding: spacing.px16,
-            borderColor: "rgba(255, 0, 26, 0.3)",
-          }}
-        >
-          <p style={{ fontSize: typography.fontSize.small, color: colors.error, fontFamily: typography.fontFamily.sans, margin: 0 }}>
-            {error}
-          </p>
+        <div style={{ marginTop: spacing.px12 }}>
+          <ErrorBanner message={error} onDismiss={() => setError("")} />
         </div>
       )}
 
@@ -459,17 +451,7 @@ export default function ClaimView() {
 
               {/* 领取成功 */}
               {claimStatus === "done" && (
-                <div
-                  style={{
-                    ...cardEmbed,
-                    textAlign: "center",
-                    background: colors.successBg,
-                  }}
-                >
-                  <p style={{ fontSize: typography.fontSize.body, color: colors.success, fontFamily: typography.fontFamily.sans, margin: 0 }}>
-                    ✅ 领取成功！
-                  </p>
-                </div>
+                <ErrorBanner message="领取成功！" type="success" />
               )}
             </div>
           )}

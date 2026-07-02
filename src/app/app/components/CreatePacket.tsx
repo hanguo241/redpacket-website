@@ -6,6 +6,7 @@ import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
 import { useChainSwitch } from "@/hooks/useChainSwitch";
 import TokenSelector from "./TokenSelector";
+import ErrorBanner from "./ErrorBanner";
 import {
   colors,
   radius,
@@ -660,9 +661,7 @@ export default function CreatePacket() {
           </div>
 
           {error && (
-            <p style={{ fontSize: typography.fontSize.small, color: colors.error, marginBottom: spacing.px12, fontFamily: typography.fontFamily.sans }}>
-              {error}
-            </p>
+            <ErrorBanner message={error} onDismiss={() => setError("")} />
           )}
 
           <div style={{ display: "flex", gap: spacing.px12 }}>
@@ -800,9 +799,7 @@ export default function CreatePacket() {
           </div>
 
           {error && (
-            <p style={{ fontSize: typography.fontSize.small, color: colors.error, marginBottom: spacing.px12, fontFamily: typography.fontFamily.sans }}>
-              {error}
-            </p>
+            <ErrorBanner message={error} onDismiss={() => setError("")} />
           )}
 
           <button
