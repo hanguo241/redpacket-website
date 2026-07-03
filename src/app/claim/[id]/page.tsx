@@ -17,8 +17,8 @@ export default function ClaimRedirect() {
   }, [params, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#fff" }}>
-      <p style={{ fontSize: "14px", color: "#808080" }}>跳转中...</p>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <p className="text-sm text-[#808080]">跳转中...</p>
     </div>
   );
 }

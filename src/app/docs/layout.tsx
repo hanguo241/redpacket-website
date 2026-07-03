@@ -25,7 +25,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           <nav className="sticky top-24 space-y-6">
             {SIDEBAR.map((section) => (
               <div key={section.title}>
-                <h3 className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "#808080" }}>
+                <h3 className="text-xs font-semibold tracking-wider uppercase mb-3 text-[#808080]">
                   {section.title}
                 </h3>
                 <ul className="space-y-2">
@@ -33,8 +33,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="block text-sm transition-colors hover:text-[#171717]"
-                        style={{ color: "#666666" }}
+                        className="block text-sm text-[#666] transition-colors hover:text-[#171717]"
                       >
                         {item.label}
                       </Link>
