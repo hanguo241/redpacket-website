@@ -1,3 +1,5 @@
+import { SectionHeader } from "@/components/ui/Marketing";
+
 const steps = [
   {
     step: "01",
@@ -22,88 +24,40 @@ const steps = [
   },
 ];
 
-const accentColors: Record<string, { text: string; dot: string; border: string }> = {
-  develop: { text: "#0a72ef", dot: "#0a72ef", border: "rgba(10,114,239,0.2)" },
-  preview: { text: "#de1d8d", dot: "#de1d8d", border: "rgba(222,29,141,0.2)" },
-  ship:    { text: "#ff5b4f", dot: "#ff5b4f", border: "rgba(255,91,79,0.2)" },
+const accentClasses: Record<string, { text: string; dot: string }> = {
+  develop: { text: "text-develop", dot: "bg-develop" },
+  preview: { text: "text-preview", dot: "bg-preview" },
+  ship: { text: "text-ship", dot: "bg-ship" },
 };
 
 export default function HowItWorks() {
   return (
     <section id="how-it-works" className="py-24 bg-white">
       <div className="mx-auto max-w-6xl px-6">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <h2 style={{
-            fontSize: "40px",
-            fontWeight: 600,
-            letterSpacing: "-2.4px",
-            lineHeight: 1.2,
-            color: "#171717",
-            marginBottom: "1rem",
-          }}>
-            三步使用，极简上手
-          </h2>
-          <p style={{ fontSize: "20px", fontWeight: 400, lineHeight: 1.8, color: "#4d4d4d", maxWidth: "36rem", margin: "0 auto" }}>
-            从创建到领取，全流程无需自研合约，无需审计
-          </p>
-        </div>
+        <SectionHeader title="三步使用，极简上手" description="从创建到领取，全流程无需自研合约，无需审计" />
 
         {/* Steps — Workflow Pipeline */}
         <div className="grid md:grid-cols-3 gap-8 relative">
           {/* Connecting line (desktop) */}
-          <div className="hidden md:block absolute top-10 left-[16%] right-[16%]" style={{
-            height: "2px",
-            background: "linear-gradient(to right, #0a72ef, #de1d8d, #ff5b4f)",
-            opacity: 0.3,
-          }} />
+          <div className="absolute left-[16%] right-[16%] top-10 hidden h-0.5 bg-gradient-to-r from-develop via-preview to-ship opacity-30 md:block" />
 
-          {steps.map((s, i) => {
-            const colors = accentColors[s.accent];
+          {steps.map((s) => {
+            const colors = accentClasses[s.accent];
             return (
               <div key={s.step} className="relative flex flex-col items-center text-center">
-                {/* Step dot */}
-                <div className="relative z-10 flex items-center justify-center mb-6"
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: colors.dot,
-                    color: "#fff",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                  }}>
+                <div className={`relative z-10 mb-6 flex h-10 w-10 items-center justify-center rounded-full font-mono text-sm font-medium text-white ${colors.dot}`}>
                   {s.step}
                 </div>
 
-                {/* Mono label */}
-                <div style={{
-                  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: colors.text,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  marginBottom: "8px",
-                }}>
+                <div className={`mb-2 font-mono text-xs font-medium uppercase tracking-[0.05em] ${colors.text}`}>
                   {s.label}
                 </div>
 
-                {/* Title */}
-                <h3 style={{
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.96px",
-                  lineHeight: 1.33,
-                  color: "#171717",
-                  marginBottom: "12px",
-                }}>
+                <h3 className="mb-3 text-2xl font-semibold leading-[1.33] tracking-[-0.96px] text-vercel-black">
                   {s.title}
                 </h3>
 
-                {/* Description */}
-                <p style={{ fontSize: "16px", fontWeight: 400, lineHeight: 1.5, color: "#4d4d4d" }}>
+                <p className="text-base font-normal leading-[1.5] text-text-secondary">
                   {s.description}
                 </p>
               </div>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { MarketingCard, MarketingLink, SectionHeader } from "@/components/ui/Marketing";
 
 const plans = [
   {
@@ -44,84 +44,43 @@ export default function Pricing() {
   return (
     <section id="pricing" className="py-24 bg-white">
       <div className="mx-auto max-w-6xl px-6">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <h2 style={{
-            fontSize: "40px",
-            fontWeight: 600,
-            letterSpacing: "-2.4px",
-            lineHeight: 1.2,
-            color: "#171717",
-            marginBottom: "1rem",
-          }}>
-            简单透明的定价
-          </h2>
-          <p style={{ fontSize: "20px", fontWeight: 400, lineHeight: 1.8, color: "#4d4d4d", maxWidth: "36rem", margin: "0 auto" }}>
-            按红包金额收取手续费，没有隐藏费用
-          </p>
-        </div>
+        <SectionHeader title="简单透明的定价" description="按红包金额收取手续费，没有隐藏费用" />
 
         {/* Plans */}
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((p) => {
-            const shadow = p.highlighted
-              ? "rgba(10,114,239,0.15) 0px 0px 0px 2px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px"
-              : "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px";
-
             return (
-              <div
+              <MarketingCard
                 key={p.name}
-                className="relative bg-white"
-                style={{
-                  borderRadius: "12px",
-                  padding: "32px",
-                  boxShadow: shadow,
-                }}
+                variant={p.highlighted ? "highlighted" : "elevated"}
+                className="relative"
               >
                 {p.highlighted && (
-                  <div style={{
-                    position: "absolute",
-                    top: "-12px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "#0a72ef",
-                    color: "#fff",
-                    borderRadius: "9999px",
-                    padding: "2px 16px",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    lineHeight: "24px",
-                  }}>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-develop px-4 text-xs font-medium leading-6 text-white">
                     推荐
                   </div>
                 )}
 
-                <h3 style={{
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.96px",
-                  color: "#171717",
-                  marginBottom: "4px",
-                }}>
+                <h3 className="mb-1 text-2xl font-semibold tracking-[-0.96px] text-vercel-black">
                   {p.name}
                 </h3>
-                <p style={{ fontSize: "14px", color: "#4d4d4d", marginBottom: "16px" }}>
+                <p className="mb-4 text-sm text-text-secondary">
                   {p.description}
                 </p>
 
-                <div style={{ marginBottom: "24px" }}>
-                  <span style={{ fontSize: "48px", fontWeight: 600, letterSpacing: "-2.4px", lineHeight: 1.0, color: "#171717" }}>
+                <div className="mb-6">
+                  <span className="text-[48px] font-semibold leading-none tracking-[-2.4px] text-vercel-black">
                     {p.price}
                   </span>
-                  <span style={{ fontSize: "14px", color: "#808080", marginLeft: "8px" }}>
+                  <span className="ml-2 text-sm text-text-tertiary">
                     {p.unit}
                   </span>
                 </div>
 
-                <ul style={{ marginBottom: "32px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <ul className="flex flex-col gap-3 mb-8">
                   {p.features.map((f) => (
-                    <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "14px", color: "#4d4d4d" }}>
-                      <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="#171717" style={{ flexShrink: 0 }}>
+                    <li key={f} className="flex items-start gap-2 text-sm text-text-secondary">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-vercel-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
@@ -129,26 +88,14 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <Link
+                <MarketingLink
                   href="/app"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    padding: "10px 20px",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    lineHeight: 1.43,
-                    ...(p.highlighted
-                      ? { background: "#171717", color: "#fff" }
-                      : { background: "#fff", color: "#171717", boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px" }
-                    ),
-                  }}
-                  className="transition-opacity hover:opacity-80"
+                  variant={p.highlighted ? "dark" : "outline"}
+                  className="w-full"
                 >
                   {p.highlighted ? "立即开始" : "联系我们"}
-                </Link>
-              </div>
+                </MarketingLink>
+              </MarketingCard>
             );
           })}
         </div>

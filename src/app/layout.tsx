@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "@/styles/app.scss";
 import { GeistSans } from "geist/font";
 import { GeistMono } from "geist/font/mono";
 import Header from "@/components/layout/Header";
@@ -21,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-geist-sans)" }}>
+      <body className="min-h-full flex flex-col">
         <Providers>
           <Header />
           <main className="flex-1">{children}</main>

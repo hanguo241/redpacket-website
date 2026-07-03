@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/cn";
+import { MarketingCard, SectionHeader } from "@/components/ui/Marketing";
 
 const faqs = [
   {
@@ -33,16 +35,15 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ borderBottom: "1px solid #ebebeb" }}>
+    <div className="border-b border-gray-100">
       <button
-        className="flex w-full items-center justify-between py-5 text-left transition-colors hover:opacity-60"
-        style={{ fontSize: "16px", fontWeight: 500, color: "#171717" }}
+        type="button"
+        className="flex w-full items-center justify-between border-none bg-transparent py-5 text-left text-base font-medium text-vercel-black transition-colors hover:opacity-60"
         onClick={() => setOpen(!open)}
       >
         <span className="pr-4">{q}</span>
         <svg
-          className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-          style={{ color: "#808080", flexShrink: 0 }}
+          className={cn("h-4 w-4 shrink-0 text-text-tertiary transition-transform", open && "rotate-180")}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -51,9 +52,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         </svg>
       </button>
       {open && (
-        <div className="pb-5" style={{ fontSize: "14px", lineHeight: 1.7, color: "#4d4d4d" }}>
-          {a}
-        </div>
+        <div className="pb-5 text-sm leading-[1.7] text-text-secondary">{a}</div>
       )}
     </div>
   );
@@ -61,33 +60,20 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function FAQ() {
   return (
-    <section className="py-24" style={{ background: "#fafafa" }}>
+    <section className="py-24 bg-gray-50">
       <div className="mx-auto max-w-3xl px-6">
-        <div className="text-center mb-12">
-          <h2 style={{
-            fontSize: "40px",
-            fontWeight: 600,
-            letterSpacing: "-2.4px",
-            lineHeight: 1.2,
-            color: "#171717",
-            marginBottom: "1rem",
-          }}>
-            常见问题
-          </h2>
-          <p style={{ fontSize: "18px", color: "#4d4d4d" }}>
-            关于 RedPacket 你可能想了解的
-          </p>
-        </div>
+        <SectionHeader
+          title="常见问题"
+          description="关于 RedPacket 你可能想了解的"
+          className="mb-12"
+          descriptionClassName="text-lg"
+        />
 
-        <div className="bg-white" style={{
-          borderRadius: "8px",
-          padding: "0 24px",
-          boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px",
-        }}>
+        <MarketingCard className="px-6 py-0">
           {faqs.map((faq) => (
             <FAQItem key={faq.q} q={faq.q} a={faq.a} />
           ))}
-        </div>
+        </MarketingCard>
       </div>
     </section>
   );

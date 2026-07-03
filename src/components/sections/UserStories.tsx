@@ -1,3 +1,5 @@
+import { MarketingCard, SectionHeader } from "@/components/ui/Marketing";
+
 const stories = [
   {
     icon: "🎯",
@@ -29,53 +31,27 @@ export default function UserStories() {
   return (
     <section className="py-24 bg-white">
       <div className="mx-auto max-w-6xl px-6">
-        {/* Section header */}
-        <div className="text-center mb-16">
-          <h2 style={{
-            fontSize: "40px",
-            fontWeight: 600,
-            letterSpacing: "-2.4px",
-            lineHeight: 1.2,
-            color: "#171717",
-            marginBottom: "1rem",
-          }}>
-            谁在用 RedPacket
-          </h2>
-          <p style={{ fontSize: "20px", fontWeight: 400, lineHeight: 1.8, color: "#4d4d4d", maxWidth: "36rem", margin: "0 auto" }}>
-            从项目方到普通用户，RedPacket 让每个人都能轻松收发链上红包
-          </p>
-        </div>
+        <SectionHeader title="谁在用 RedPacket" description="从项目方到普通用户，RedPacket 让每个人都能轻松收发链上红包" />
 
         {/* Stories grid */}
         <div className="grid sm:grid-cols-2 gap-6">
           {stories.map((s) => (
-            <div
+            <MarketingCard
               key={s.role}
-              className="bg-white transition-all duration-200"
-              style={{
-                borderRadius: "8px",
-                padding: "24px",
-                boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px",
-              }}
+              className="transition-all duration-200"
             >
               <div className="flex items-start gap-4">
-                <div style={{ fontSize: "24px", flexShrink: 0, marginTop: "2px" }}>{s.icon}</div>
+                <div className="text-2xl shrink-0 mt-0.5">{s.icon}</div>
                 <div>
-                  <div style={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "#171717",
-                    letterSpacing: "-0.32px",
-                    marginBottom: "8px",
-                  }}>
+                  <div className="mb-2 text-sm font-semibold tracking-[-0.32px] text-vercel-black">
                     {s.role}
                   </div>
-                  <p style={{ fontSize: "16px", fontWeight: 400, lineHeight: 1.5, color: "#4d4d4d", fontStyle: "italic" }}>
+                  <p className="text-base font-normal italic leading-[1.5] text-text-secondary">
                     &ldquo;{s.quote}&rdquo;
                   </p>
                 </div>
               </div>
-            </div>
+            </MarketingCard>
           ))}
         </div>
       </div>

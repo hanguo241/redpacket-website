@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { MarketingCard } from "@/components/ui/Marketing";
 
 interface StatItemProps {
   value: number;
@@ -48,11 +49,11 @@ function StatItem({ value, suffix, label }: StatItemProps) {
 
   return (
     <div ref={ref} className="text-center">
-      <div style={{ fontSize: "48px", fontWeight: 600, letterSpacing: "-2.4px", lineHeight: 1.0, color: "#171717" }}>
+      <div className="text-[48px] font-semibold leading-none tracking-[-2.4px] text-vercel-black">
         {formatNumber(count)}
-        <span style={{ color: "#171717" }}>{suffix}</span>
+        <span>{suffix}</span>
       </div>
-      <div style={{ fontSize: "14px", color: "#4d4d4d", marginTop: "8px" }}>{label}</div>
+      <div className="mt-2 text-sm text-text-secondary">{label}</div>
     </div>
   );
 }
@@ -61,19 +62,14 @@ export default function Stats() {
   return (
     <section className="py-20 bg-white">
       <div className="mx-auto max-w-5xl px-6">
-        <div style={{
-          padding: "32px 40px",
-          borderRadius: "12px",
-          background: "#fff",
-          boxShadow: "rgba(0,0,0,0.08) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 2px, rgba(0,0,0,0.04) 0px 8px 8px -8px, #fafafa 0px 0px 0px 1px",
-        }}>
+        <MarketingCard variant="elevated" className="p-8 md:p-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <StatItem value={12847} suffix="+" label="已发送红包" />
             <StatItem value={3284700} suffix="+" label="已发放金额 (USD)" />
             <StatItem value={6} suffix="" label="支持的链" />
             <StatItem value={47} suffix="+" label="合作项目方" />
           </div>
-        </div>
+        </MarketingCard>
       </div>
     </section>
   );

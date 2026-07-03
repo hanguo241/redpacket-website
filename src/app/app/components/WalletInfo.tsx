@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useConnectors, useDisconnect, useBalance } from "wagmi";
-import { colors } from "../design";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 
 export default function WalletInfo() {
   const [mounted, setMounted] = useState(false);
@@ -25,14 +27,13 @@ export default function WalletInfo() {
         <p className="text-base text-[#4d4d4d] mb-6 font-sans">选择钱包连接</p>
         <div className="flex flex-col gap-3 max-w-[320px] mx-auto">
           {connectors.map((connector) => (
-            <button
+            <Button
               key={connector.uid}
               onClick={() => connect({ connector })}
               disabled={isPending}
-              className="rp-btn-primary"
             >
               {isPending ? "连接中..." : `连接 ${connector.name || connector.id}`}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -50,32 +51,33 @@ export default function WalletInfo() {
     : "—";
 
   return (
-    <div className="rp-container flex items-center justify-between">
+    <Panel className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-[rgba(255,55,199,0.08)] flex items-center justify-center text-base shrink-0">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-magenta-overlay text-base">
           🧧
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[13.3333px] font-mono text-[#131313] font-[535]">
+            <span className="font-mono text-sm font-semibold text-text-primary">
               {address?.slice(0, 8)}...{address?.slice(-6)}
             </span>
-            <span className="text-xs px-1.5 rounded-[6px] bg-[#F9F9F9] text-[#808080] font-mono leading-5">
-              {chainLabel}
-            </span>
+            <Badge tone="neutral" className="font-mono">{chainLabel}</Badge>
           </div>
-          <p className="text-xs text-[#808080] font-mono m-0 mt-0.5">
+          <p className="m-0 mt-0.5 font-mono text-xs text-text-tertiary">
             {balanceStr}
           </p>
         </div>
       </div>
 
-      <button
+      <Button
+        variant="outline"
+        size="sm"
+        fullWidth={false}
         onClick={() => disconnect()}
-        className="px-3 py-1.5 rounded-xl text-xs font-sans text-[#808080] bg-transparent border border-[#F2F2F2] cursor-pointer transition-all whitespace-nowrap hover:bg-[#f5f5f5] hover:text-[#131313]"
+        className="whitespace-nowrap text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
       >
         断开
-      </button>
-    </div>
+      </Button>
+    </Panel>
   );
 }
