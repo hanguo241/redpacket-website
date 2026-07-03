@@ -43,9 +43,7 @@ function AppPageInner() {
   return (
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-[500px] pt-12 px-4 pb-[72px]">
-        <div className="mb-5">
-          <span className="font-sans text-xl font-semibold tracking-tight text-text-primary">🧧 RedPacket</span>
-        </div>
+  
         <div className="mb-6"><WalletInfo /></div>
 
         {isConnected && (
