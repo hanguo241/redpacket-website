@@ -36,9 +36,12 @@ export function useChainConfig() {
         console.warn("Failed to fetch chain config, using defaults", err);
         if (!cancelled) {
           setChains([
-            { name: "ETH", chainId: 1, rpcUrl: "", contractAddress: "" },
-            { name: "BSC", chainId: 56, rpcUrl: "", contractAddress: "" },
-            { name: "LOCAL", chainId: 31337, rpcUrl: "http://127.0.0.1:8545", contractAddress: "" },
+            {
+              name: "AVAX-FUJI",
+              chainId: 43113,
+              rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+              contractAddress: "0x7dc7013fA5bFd9d29323206D5759138494b31FeB",
+            },
           ]);
         }
       } finally {

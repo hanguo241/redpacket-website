@@ -41,6 +41,8 @@ export default function WalletInfo() {
   }
 
   const chainLabel =
+    chainId === 43113 ? "AVAX-FUJI" :
+    chainId === 43114 ? "AVAX" :
     chainId === 31337 ? "LOCAL" :
     chainId === 1 ? "ETH" :
     chainId === 56 ? "BSC" :

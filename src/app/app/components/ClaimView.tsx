@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { getPacketStatus, prepareClaim, confirmClaim, proxyClaim } from "@/lib/api";
+import { useChainConfig } from "@/hooks/useChainConfig";
+import { useChainSwitch } from "@/hooks/useChainSwitch";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field, FormTitle } from "@/components/ui/Field";
@@ -61,6 +63,8 @@ interface ClaimRecord {
 export default function ClaimView({ initialPacketId }: { initialPacketId?: string | null }) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { chains } = useChainConfig();
+  const { ensureChain } = useChainSwitch();
 
   const [packetId, setPacketId] = useState(initialPacketId || "");
   const [password, setPassword] = useState("");
@@ -87,6 +91,15 @@ export default function ClaimView({ initialPacketId }: { initialPacketId?: strin
     return m ? m[1] : t;
   }
 
+  /** 按目标合约地址反查它属于哪条链，确保钱包在正确链上再发交易 */
+  async function ensureChainForContract(contractAddress: string) {
+    const target = contractAddress.toLowerCase();
+    const cfg = chains.find(
+      (c) => c.contractAddress && c.contractAddress.toLowerCase() === target
+    );
+    if (cfg && cfg.chainId > 0) await ensureChain(cfg.chainId, cfg.name, cfg.rpcUrl);
+  }
+
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
     const id = extractPacketId(packetId);
@@ -105,6 +118,8 @@ export default function ClaimView({ initialPacketId }: { initialPacketId?: strin
       setClaimStatus("sending");
       const provider = (window as any).ethereum;
       if (!provider) throw new Error("No Ethereum provider");
+      // 护栏：发错链 = 白付 gas 且领不到红包
+      await ensureChainForContract(prep.transaction.to);
       const txHash: string = await provider.request({ method: "eth_sendTransaction", params: [{ from: address, to: prep.transaction.to, data: prep.transaction.data }] });
       if (!txHash) throw new Error("交易失败");
       try { await confirmClaim({ packet_id: result.packet_id, recipient: address, tx_hash: txHash }); } catch { /* ignore */ }

@@ -1,12 +1,7 @@
 import { MarketingCard, SectionHeader } from "@/components/ui/Marketing";
 
 const chains = [
-  { name: "ETH", icon: "🔵" },
-  { name: "BSC", icon: "🟡" },
-  { name: "SOLANA", icon: "🟣" },
-  { name: "TRON", icon: "🔴" },
-  { name: "AB-Core", icon: "🟠" },
-  { name: "AB-iOT", icon: "🟢" },
+  { name: "Avalanche C-Chain", icon: "🔺" },
 ];
 
 export default function ChainSupport() {
@@ -14,8 +9,8 @@ export default function ChainSupport() {
     <section className="py-24 bg-gray-50">
       <div className="mx-auto max-w-4xl px-6 text-center">
         <SectionHeader
-          title="支持的主流公链"
-          description="覆盖 EVM 与非 EVM 生态，一条 API 接入所有链"
+          title="当前支持的链"
+          description="首批上线 Avalanche C-Chain（Fuji 测试网），一条 API 打通 EVM 多链，其余链按计划接入"
           className="mb-12"
         />
 

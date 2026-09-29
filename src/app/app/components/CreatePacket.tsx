@@ -214,7 +214,7 @@ function PendingView({ step }: { step: "approve" | "create" }) {
 export default function CreatePacket() {
   const { address, isConnected } = useAccount();
   const { chains, loading: chainsLoading, getChainByName } = useChainConfig();
-  const { switchToChain } = useChainSwitch();
+  const { switchToChain, ensureChain } = useChainSwitch();
   const { sendTransactionAsync } = useSendTransaction();
 
   const [chain, setChain] = useState("");
@@ -312,6 +312,13 @@ export default function CreatePacket() {
     setError("");
     setFlow("pending");
     try {
+      // 护栏：交易必须发在红包所属的那条链上。
+      // 钱包停在别的链时，同一笔带 value 的交易会打到错误链上 —— 钱就没了。
+      const chainCfg = getChainByName(chain);
+      if (chainCfg && chainCfg.chainId > 0) {
+        await ensureChain(chainCfg.chainId, chainCfg.name, chainCfg.rpcUrl);
+      }
+
       const info = prepared.packetInfo;
       const isErc20 = info.token && info.token !== "native";
 
