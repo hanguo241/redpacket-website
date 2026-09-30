@@ -44,6 +44,7 @@ export function fromWei(wei: string): string {
 
 type PacketType = "normal" | "password";
 type SubType = "average" | "random";
+type ClaimMode = "self" | "proxy";
 type FlowState = "form" | "confirm" | "pending" | "success";
 
 // ── 高级选项面板 ──
@@ -57,7 +58,7 @@ function AdvancedOptions({
   packetType: PacketType; setPacketType: (v: PacketType) => void;
   subType: SubType; setSubType: (v: SubType) => void;
   password: string; setPassword: (v: string) => void;
-  claimMode: string; setClaimMode: (v: string) => void;
+  claimMode: ClaimMode; setClaimMode: (v: ClaimMode) => void;
   expirySeconds: number; setExpirySeconds: (v: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -87,11 +88,10 @@ function AdvancedOptions({
           </div>
 
           <Field label="领取模式">
-            <SelectField value={claimMode} onChange={(v) => setClaimMode(v)}
+            <SelectField value={claimMode} onChange={(v) => setClaimMode(v as ClaimMode)}
               options={[
                 { value: "self", label: "自领（自己付 gas）" },
                 { value: "proxy", label: "代领（平台付 gas）" },
-                { value: "both", label: "两种模式" },
               ]} />
           </Field>
 
@@ -224,7 +224,7 @@ export default function CreatePacket() {
   const [packetType, setPacketType] = useState<PacketType>("normal");
   const [subType, setSubType] = useState<SubType>("average");
   const [password, setPassword] = useState("");
-  const [claimMode, setClaimMode] = useState("self");
+  const [claimMode, setClaimMode] = useState<ClaimMode>("self");
   const [expirySeconds, setExpirySeconds] = useState(86400);
   const [selectedToken, setSelectedToken] = useState<TokenInfo | undefined>();
   const nativeSymbol = NATIVE_CURRENCIES[getChainByName(chain)?.chainId ?? 0]?.symbol ?? "原生币";
@@ -285,7 +285,7 @@ export default function CreatePacket() {
         chain, token, total_amount: weiAmount, head_count: headCount,
         packet_type: packetType, sub_type: subType,
         password: packetType === "password" ? password : undefined,
-        claim_mode: claimMode as any, end_time: endTime,
+        claim_mode: claimMode, end_time: endTime,
       });
       setPrepared({
         packetId: res.packet_id,
@@ -393,7 +393,7 @@ export default function CreatePacket() {
             {[
               ["红包金额", `${totalAmount} ${symbol}`, true],
               ["领取人数", `${headCount} 人`, false],
-              ["领取模式", claimMode === "self" ? "自领" : claimMode === "proxy" ? "代领" : "两种模式", false],
+              ["领取模式", claimMode === "self" ? "自领" : "代领", false],
             ].map(([l, v, bold]) => (
               <div key={l as string} className="flex justify-between mb-2 last:mb-0">
                 <span className="font-sans text-xs text-text-tertiary">{l as string}</span>
