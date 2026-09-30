@@ -6,7 +6,7 @@ import { useCallback } from "react";
 // EIP-3326: wallet_switchEthereumChain
 
 /** EVM 链的原生币信息 */
-const NATIVE_CURRENCIES: Record<number, { symbol: string; decimals: number }> = {
+export const NATIVE_CURRENCIES: Record<number, { symbol: string; decimals: number }> = {
   1: { symbol: "ETH", decimals: 18 },
   56: { symbol: "BNB", decimals: 18 },
   137: { symbol: "POL", decimals: 18 },

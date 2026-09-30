@@ -7,10 +7,11 @@ import { cn } from "@/lib/cn";
 interface TokenSelectorProps {
   chain: string;
   value: string;
+  onTokenResolved?: (tokenInfo: TokenInfo) => void;
   onChange: (tokenAddress: string, tokenInfo?: TokenInfo) => void;
 }
 
-export default function TokenSelector({ chain, value, onChange }: TokenSelectorProps) {
+export default function TokenSelector({ chain, value, onChange, onTokenResolved }: TokenSelectorProps) {
   const [open, setOpen] = useState(false);
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,10 @@ export default function TokenSelector({ chain, value, onChange }: TokenSelectorP
   }, [open]);
 
   const selectedToken = tokens.find((t) => t.token_address === value);
+  useEffect(() => {
+    if (selectedToken) onTokenResolved?.(selectedToken);
+  }, [selectedToken, onTokenResolved]);
+
   const isCustom = value && !selectedToken && value !== "native";
 
   function handleSelect(token: TokenInfo) {

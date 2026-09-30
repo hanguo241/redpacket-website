@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useSendTransaction } from "wagmi";
-import { preparePacket, createPacket } from "@/lib/api";
+import { preparePacket, createPacket, type TokenInfo } from "@/lib/api";
 import { useChainConfig } from "@/hooks/useChainConfig";
-import { useChainSwitch } from "@/hooks/useChainSwitch";
+import { useChainSwitch, NATIVE_CURRENCIES } from "@/hooks/useChainSwitch";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { Field, FormTitle } from "@/components/ui/Field";
@@ -52,13 +52,13 @@ function AdvancedOptions({
   subType, setSubType,
   password, setPassword,
   claimMode, setClaimMode,
-  endTime, setEndTime,
+  expirySeconds, setExpirySeconds,
 }: {
   packetType: PacketType; setPacketType: (v: PacketType) => void;
   subType: SubType; setSubType: (v: SubType) => void;
   password: string; setPassword: (v: string) => void;
   claimMode: string; setClaimMode: (v: string) => void;
-  endTime: number; setEndTime: (v: number) => void;
+  expirySeconds: number; setExpirySeconds: (v: number) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -75,12 +75,12 @@ function AdvancedOptions({
 
       {open && (
         <div className="mt-3 flex flex-col gap-3">
-          <div className="flex gap-3">
-            <Field label="类型" className="flex-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="类型" className="min-w-0">
               <SelectField value={packetType} onChange={(v) => setPacketType(v as PacketType)}
                 options={[{ value: "normal", label: "普通红包" }, { value: "password", label: "口令红包" }]} />
             </Field>
-            <Field label="分配" className="flex-1">
+            <Field label="分配" className="min-w-0">
               <SelectField value={subType} onChange={(v) => setSubType(v as SubType)}
                 options={[{ value: "average", label: "均分" }, { value: "random", label: "随机" }]} />
             </Field>
@@ -96,13 +96,13 @@ function AdvancedOptions({
           </Field>
 
           <Field label="过期时间">
-            <SelectField value={endTime} onChange={(v) => setEndTime(Number(v))}
+            <SelectField value={expirySeconds} onChange={(v) => setExpirySeconds(Number(v))}
               options={[
-                { value: Math.floor(Date.now() / 1000) + 3600, label: "1 小时后" },
-                { value: Math.floor(Date.now() / 1000) + 7200, label: "2 小时后" },
-                { value: Math.floor(Date.now() / 1000) + 14400, label: "4 小时后" },
-                { value: Math.floor(Date.now() / 1000) + 43200, label: "12 小时后" },
-                { value: Math.floor(Date.now() / 1000) + 86400, label: "24 小时后" },
+                { value: 3600, label: "1 小时后" },
+                { value: 7200, label: "2 小时后" },
+                { value: 14400, label: "4 小时后" },
+                { value: 43200, label: "12 小时后" },
+                { value: 86400, label: "24 小时后" },
               ]} />
           </Field>
 
@@ -119,13 +119,13 @@ function AdvancedOptions({
 }
 
 // ── 费用详情面板 ──
-function FeeDetails({ gasInfo, token }: {
+function FeeDetails({ gasInfo, symbol, nativeSymbol }: {
   gasInfo: {
     platformFeeWei: string; claimPoolWei: string;
     estimatedGasFeeWei: string; estimatedGasFeeEth: string;
     gasPriceGwei: string; multiplier: number;
   } | null;
-  token: string;
+  symbol: string; nativeSymbol: string;
 }) {
   const [open, setOpen] = useState(false);
   if (!gasInfo) return null;
@@ -139,7 +139,7 @@ function FeeDetails({ gasInfo, token }: {
       >
         <span className="font-sans text-sm text-text-secondary">费用明细</span>
         <span className="font-mono text-sm text-magenta">
-          {gasInfo.estimatedGasFeeEth} ETH
+          {gasInfo.estimatedGasFeeEth} {nativeSymbol}
           <span className={cn("ml-1 inline-block transition-transform duration-150", open && "rotate-180")}>
             ▾
           </span>
@@ -149,8 +149,8 @@ function FeeDetails({ gasInfo, token }: {
       {open && (
         <div className="mt-3 flex flex-col gap-2">
           {[
-            ["平台费", `${fromWei(gasInfo.platformFeeWei)} ${token === "native" ? "ETH" : "Token"}`],
-            ["领取池", `${fromWei(gasInfo.claimPoolWei)} ${token === "native" ? "ETH" : "Token"}`],
+            ["平台费", `${fromWei(gasInfo.platformFeeWei)} ${symbol}`],
+            ["领取池", `${fromWei(gasInfo.claimPoolWei)} ${symbol}`],
             ["Gas Price", `${gasInfo.gasPriceGwei} Gwei`],
             ["估算倍数", `${gasInfo.multiplier}x`],
           ].map(([label, value]) => (
@@ -166,15 +166,15 @@ function FeeDetails({ gasInfo, token }: {
 }
 
 // ── 发送成功卡片 ──
-function SuccessView({ shareUrl, txHash, totalAmount, token, onReset }: {
-  shareUrl: string; txHash?: string; totalAmount: string; token: string; onReset: () => void;
+function SuccessView({ shareUrl, txHash, totalAmount, symbol, onReset }: {
+  shareUrl: string; txHash?: string; totalAmount: string; symbol: string; onReset: () => void;
 }) {
   return (
     <div className="text-center">
       <div className="text-[48px] mb-4 leading-none">🎉</div>
       <h3 className="m-0 mb-2 font-sans text-2xl font-semibold text-text-primary">红包已发送！</h3>
       <p className="mb-6 font-sans text-base text-text-secondary">
-        {fromWei(totalAmount)} {token === "native" ? "ETH" : "Token"}
+        {fromWei(totalAmount)} {symbol}
       </p>
 
       <PanelInset className="mb-5 flex items-center justify-between gap-2 text-left">
@@ -225,8 +225,10 @@ export default function CreatePacket() {
   const [subType, setSubType] = useState<SubType>("average");
   const [password, setPassword] = useState("");
   const [claimMode, setClaimMode] = useState("self");
-  const [endTime, setEndTime] = useState(Math.floor(Date.now() / 1000) + 86400);
-  const [symbol, setSymbol] = useState("ETH");
+  const [expirySeconds, setExpirySeconds] = useState(86400);
+  const [selectedToken, setSelectedToken] = useState<TokenInfo | undefined>();
+  const nativeSymbol = NATIVE_CURRENCIES[getChainByName(chain)?.chainId ?? 0]?.symbol ?? "原生币";
+  const symbol = selectedToken?.symbol || (token === "native" ? nativeSymbol : "Token");
   const [flow, setFlow] = useState<FlowState>("form");
   const [error, setError] = useState("");
   const [pendingStep, setPendingStep] = useState<"approve" | "create">("create");
@@ -278,6 +280,7 @@ export default function CreatePacket() {
     if (weiAmount === "0" || weiAmount === "") { setError("请输入有效的金额"); return; }
 
     try {
+      const endTime = Math.floor(Date.now() / 1000) + expirySeconds;
       const res = await preparePacket({
         chain, token, total_amount: weiAmount, head_count: headCount,
         packet_type: packetType, sub_type: subType,
@@ -342,7 +345,7 @@ export default function CreatePacket() {
         token: info.token || "native", total_amount: info.total_amount || weiAmount,
         head_count: info.head_count || headCount, packet_type: info.packet_type || packetType,
         sub_type: info.sub_type || subType, claim_mode: info.claim_mode || claimMode,
-        password: info.password, start_time: info.start_time || 0, end_time: info.end_time || endTime,
+        password: info.password, start_time: info.start_time || 0, end_time: info.end_time,
         gas_reserve_wei: info.gas_reserve_wei || "0", gas_estimate_multiplier: info.gas_estimate_multiplier || 1.2,
         fee_bps: info.fee_bps || 20,
       });
@@ -359,6 +362,8 @@ export default function CreatePacket() {
 
   async function handleChainChange(newChain: string) {
     setChain(newChain);
+    setToken("native");
+    setSelectedToken(undefined);
     const cfg = getChainByName(newChain);
     if (cfg && cfg.chainId > 0) { try { await switchToChain(cfg.chainId, cfg.name, cfg.rpcUrl); } catch { /* 忽略 */ } }
   }
@@ -375,7 +380,7 @@ export default function CreatePacket() {
     <Panel>
       {flow === "success" && successData && (
         <SuccessView shareUrl={successData.shareUrl} txHash={successData.txHash}
-          totalAmount={successData.totalAmount} token={token} onReset={handleReset} />
+          totalAmount={successData.totalAmount} symbol={symbol} onReset={handleReset} />
       )}
 
       {flow === "pending" && <PendingView step={pendingStep} />}
@@ -386,7 +391,7 @@ export default function CreatePacket() {
 
           <PanelInset>
             {[
-              ["红包金额", `${totalAmount} ${token === "native" ? "ETH" : "Token"}`, true],
+              ["红包金额", `${totalAmount} ${symbol}`, true],
               ["领取人数", `${headCount} 人`, false],
               ["领取模式", claimMode === "self" ? "自领" : claimMode === "proxy" ? "代领" : "两种模式", false],
             ].map(([l, v, bold]) => (
@@ -399,7 +404,7 @@ export default function CreatePacket() {
             ))}
           </PanelInset>
 
-          <div className="mt-3 mb-5"><FeeDetails gasInfo={prepared.gasInfo} token={token} /></div>
+          <div className="mt-3 mb-5"><FeeDetails gasInfo={prepared.gasInfo} symbol={symbol} nativeSymbol={nativeSymbol} /></div>
           {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
           <div className="flex flex-col gap-2">
@@ -423,7 +428,8 @@ export default function CreatePacket() {
           </Field>
 
           <Field label="代币" className="mb-4">
-            <TokenSelector chain={chain} value={token} onChange={(addr, info) => { setToken(addr); if (info) setSymbol(info.symbol); }} />
+            <TokenSelector key={chain} chain={chain} value={token} onTokenResolved={setSelectedToken}
+              onChange={(addr, info) => { setToken(addr); setSelectedToken(info); }} />
           </Field>
 
           <Field label="总金额" className="mb-4">
@@ -439,7 +445,7 @@ export default function CreatePacket() {
           <div className="mb-5">
             <AdvancedOptions packetType={packetType} setPacketType={setPacketType}
               subType={subType} setSubType={setSubType} password={password} setPassword={setPassword}
-              claimMode={claimMode} setClaimMode={setClaimMode} endTime={endTime} setEndTime={setEndTime} />
+              claimMode={claimMode} setClaimMode={setClaimMode} expirySeconds={expirySeconds} setExpirySeconds={setExpirySeconds} />
           </div>
 
           {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}

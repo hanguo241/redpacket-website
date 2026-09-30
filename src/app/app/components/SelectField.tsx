@@ -12,13 +12,13 @@ interface SelectFieldProps {
 
 export default function SelectField({ value, onChange, options, disabled, className }: SelectFieldProps) {
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         className={cn(
-          "h-11 w-full cursor-pointer appearance-none rounded-xl border border-border bg-white px-4 py-3 pr-10 font-sans text-base font-normal text-text-primary outline-none transition-[border-color,box-shadow] focus:border-magenta focus:shadow-[0_0_0_3px_rgba(255,55,199,0.1)] disabled:cursor-not-allowed disabled:opacity-50",
+          "h-11 w-full cursor-pointer appearance-none rounded-xl border border-border bg-white px-3 py-0 pr-8 leading-normal font-sans text-base font-normal text-text-primary outline-none transition-[border-color,box-shadow] focus:border-magenta focus:shadow-[0_0_0_3px_rgba(255,55,199,0.1)] disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
       >
